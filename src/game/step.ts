@@ -1,13 +1,15 @@
 import type { Action } from "../engine/input.js";
+import { enemies as enemyDefs } from "../content/enemies.js";
+import { enemyDefeatedMessage, playerAttackMessage } from "../content/messages.js";
+import { playerAttackDamage } from "./combat.js";
 import { isWalkable, tileAt } from "./dungeon/types.js";
+import { enemyAt } from "./dungeon/populate.js";
+import type { GameEvent } from "./events.js";
 import type { GameState, Mode } from "./state.js";
 import { descendToNextFloor, logMessage, refreshVision } from "./state.js";
+import { resolveEnemyTurns } from "./turns.js";
 
-export type GameEvent =
-  | { type: "moved" }
-  | { type: "blocked" }
-  | { type: "descended"; floor: number }
-  | { type: "quit" };
+export type { GameEvent } from "./events.js";
 
 export interface StepResult {
   state: GameState;
@@ -19,6 +21,11 @@ const MODE_TOGGLES: Partial<Record<Action["type"], Mode>> = {
   help: "help",
 };
 
+function runEnemyTurn(state: GameState, events: GameEvent[]): StepResult {
+  const result = resolveEnemyTurns(state);
+  return { state: result.state, events: [...events, ...result.events] };
+}
+
 // step es pura: no toca la terminal ni el reloj. Recibe una acción y
 // devuelve el estado siguiente más los eventos ocurridos, sin efectos
 // secundarios — así se puede testear y simular sin pantalla.
@@ -27,23 +34,23 @@ export function step(state: GameState, action: Action): StepResult {
     return { state, events: [{ type: "quit" }] };
   }
 
-  // M y ? abren/cierran una pantalla superpuesta; no consumen turno.
+  if (state.mode === "gameover" || state.mode === "victory") {
+    return { state, events: [{ type: "restartRequested" }] };
+  }
+
   const toggledMode = MODE_TOGGLES[action.type];
   if (toggledMode) {
     const nextMode = state.mode === toggledMode ? "play" : toggledMode;
     return { state: { ...state, mode: nextMode }, events: [] };
   }
   if (state.mode !== "play") {
-    // Cualquier otra tecla cierra la pantalla superpuesta.
+    // Cualquier otra tecla cierra la pantalla superpuesta (mapa/ayuda).
     return { state: { ...state, mode: "play" }, events: [] };
   }
 
   if (action.type === "descend") {
     if (tileAt(state.dungeon, state.player.x, state.player.y) !== "stairs") {
-      return {
-        state: logMessage(state, "No hay ninguna escalera acá."),
-        events: [],
-      };
+      return { state: logMessage(state, "No hay ninguna escalera acá."), events: [] };
     }
     const next = descendToNextFloor(state);
     return {
@@ -52,23 +59,51 @@ export function step(state: GameState, action: Action): StepResult {
     };
   }
 
+  if (action.type === "wait") {
+    return runEnemyTurn(state, []);
+  }
+
   if (action.type !== "move") {
     return { state, events: [] };
   }
 
   const nextX = state.player.x + action.dx;
   const nextY = state.player.y + action.dy;
+  const facingLeft = action.dx !== 0 ? action.dx < 0 : state.facingLeft;
+
+  const target = enemyAt(state.enemies, nextX, nextY);
+  if (target) {
+    const damage = playerAttackDamage(state.player.attack);
+    const hp = target.hp - damage;
+    const defeated = hp <= 0;
+    const enemies = defeated
+      ? state.enemies.filter((e) => e.id !== target.id)
+      : state.enemies.map((e) => (e.id === target.id ? { ...e, hp } : e));
+
+    const def = enemyDefs[target.kind];
+    const message = defeated ? enemyDefeatedMessage(def) : playerAttackMessage(def, damage);
+
+    const attacked: GameState = {
+      ...state,
+      enemies,
+      facingLeft,
+      score: state.score + (defeated ? 5 : 0),
+    };
+
+    return runEnemyTurn(logMessage(attacked, message), [
+      { type: "attacked", enemyKind: target.kind, defeated },
+    ]);
+  }
 
   if (!isWalkable(state.dungeon, nextX, nextY)) {
     return { state, events: [{ type: "blocked" }] };
   }
 
-  const facingLeft = action.dx !== 0 ? action.dx < 0 : state.facingLeft;
   const moved: GameState = {
     ...state,
     player: { ...state.player, x: nextX, y: nextY },
     facingLeft,
   };
 
-  return { state: refreshVision(moved), events: [{ type: "moved" }] };
+  return runEnemyTurn(refreshVision(moved), [{ type: "moved" }]);
 }

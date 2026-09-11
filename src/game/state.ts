@@ -1,11 +1,14 @@
+import type { EnemyKind } from "../content/enemies.js";
 import { PLAYER_BASE } from "./config.js";
 import type { Dungeon } from "./dungeon/types.js";
 import { generateDungeon } from "./dungeon/generate.js";
+import { populateFloor } from "./dungeon/populate.js";
+import type { Enemy } from "./entities.js";
 import { computeVisible } from "./fov/visibility.js";
 import type { Rng } from "./rng.js";
 import { createRng } from "./rng.js";
 
-export type Mode = "play" | "map" | "help";
+export type Mode = "play" | "map" | "help" | "gameover" | "victory";
 
 export interface Player {
   x: number;
@@ -23,6 +26,7 @@ export interface GameState {
   floor: number;
   dungeon: Dungeon;
   player: Player;
+  enemies: Enemy[];
   visible: Set<number>;
   seen: Set<number>;
   messages: string[];
@@ -30,6 +34,8 @@ export interface GameState {
   animFrame: number;
   facingLeft: boolean;
   gold: number;
+  score: number;
+  deathCause: EnemyKind | null;
 }
 
 function withUpdatedVision(dungeon: Dungeon, player: Player, seen: Set<number>): {
@@ -44,7 +50,8 @@ function withUpdatedVision(dungeon: Dungeon, player: Player, seen: Set<number>):
 
 export function createInitialState(seed: number): GameState {
   const rng = createRng(seed);
-  const [dungeon, nextRng] = generateDungeon(rng, 1);
+  const [dungeon, afterGen] = generateDungeon(rng, 1);
+  const [enemies, nextRng] = populateFloor(dungeon, 1, afterGen);
   const player: Player = {
     x: dungeon.start.x,
     y: dungeon.start.y,
@@ -62,6 +69,7 @@ export function createInitialState(seed: number): GameState {
     floor: 1,
     dungeon,
     player,
+    enemies,
     visible,
     seen,
     messages: ["Bajás a la Salamanca."],
@@ -69,6 +77,8 @@ export function createInitialState(seed: number): GameState {
     animFrame: 0,
     facingLeft: false,
     gold: 0,
+    score: 0,
+    deathCause: null,
   };
 }
 
@@ -92,7 +102,8 @@ export function logMessage(state: GameState, message: string): GameState {
 // siendo reproducible.
 export function descendToNextFloor(state: GameState): GameState {
   const nextFloorNumber = state.floor + 1;
-  const [dungeon, nextRng] = generateDungeon(state.rng, nextFloorNumber);
+  const [dungeon, afterGen] = generateDungeon(state.rng, nextFloorNumber);
+  const [enemies, nextRng] = populateFloor(dungeon, nextFloorNumber, afterGen);
   const player: Player = { ...state.player, x: dungeon.start.x, y: dungeon.start.y };
   const { visible, seen } = withUpdatedVision(dungeon, player, new Set());
 
@@ -101,8 +112,10 @@ export function descendToNextFloor(state: GameState): GameState {
     rng: nextRng,
     floor: nextFloorNumber,
     dungeon,
+    enemies,
     player,
     visible,
     seen,
+    score: state.score + 100,
   };
 }

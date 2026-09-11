@@ -17,6 +17,7 @@ import { TILE_SIZE, VIEWPORT_TILES_TALL, VIEWPORT_TILES_WIDE } from "./game/conf
 import { drawPlayScene } from "./scenes/play.js";
 import { drawMapOverlay } from "./scenes/map-overlay.js";
 import { helpLines } from "./scenes/help.js";
+import { gameOverLines } from "./scenes/gameover.js";
 import { buildHud } from "./ui/hud.js";
 import { visibleLogLines } from "./ui/log.js";
 
@@ -67,6 +68,16 @@ async function main(): Promise<void> {
   let state = createInitialState(seed);
   let running = true;
 
+  const drawOverlayText = (lines: string[]) => {
+    lines.forEach((line, i) => {
+      if (GAME_ORIGIN_ROW + i < LOG_ROW_1) {
+        process.stdout.write(writeLine(GAME_ORIGIN_ROW + i, centered(line, COLS)));
+      }
+    });
+    process.stdout.write(writeLine(LOG_ROW_1, ""));
+    process.stdout.write(writeLine(LOG_ROW_2, ""));
+  };
+
   const draw = () => {
     fb.clear("·");
 
@@ -83,13 +94,9 @@ async function main(): Promise<void> {
     );
 
     if (state.mode === "help") {
-      helpLines.forEach((line, i) => {
-        if (GAME_ORIGIN_ROW + i < LOG_ROW_1) {
-          process.stdout.write(writeLine(GAME_ORIGIN_ROW + i, line));
-        }
-      });
-      process.stdout.write(writeLine(LOG_ROW_1, ""));
-      process.stdout.write(writeLine(LOG_ROW_2, ""));
+      drawOverlayText(helpLines);
+    } else if (state.mode === "gameover") {
+      drawOverlayText(gameOverLines(state));
     } else {
       const [line1, line2] = visibleLogLines(state.messages);
       process.stdout.write(writeLine(LOG_ROW_1, line1));
@@ -116,6 +123,9 @@ async function main(): Promise<void> {
         scheduler.stop();
         restoreScreen();
         process.exit(0);
+      }
+      if (event.type === "restartRequested") {
+        state = createInitialState(Date.now() >>> 0);
       }
     }
 

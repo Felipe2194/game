@@ -1,6 +1,7 @@
 import type { PaletteKey } from "../assets/palette.js";
 import { dimmed } from "../assets/palette.js";
 import { hero } from "../assets/sprites/hero.js";
+import { enemySprites } from "../assets/sprites/enemies.js";
 import { VIEWPORT_TILES_TALL, VIEWPORT_TILES_WIDE } from "../game/config.js";
 import { tileAt, tileIndex } from "../game/dungeon/types.js";
 import type { GameState } from "../game/state.js";
@@ -42,6 +43,18 @@ export function drawPlayScene(fb: Framebuffer, state: GameState): void {
       const color = tileColor(tileAt(dungeon, worldX, worldY));
       fb.fillTile(vx, vy, isVisible ? color : dimmed[color]);
     }
+  }
+
+  // Los enemigos solo se dibujan en casillas visibles ahora mismo (sección 9:
+  // las recordadas no muestran enemigos ni objetos).
+  for (const enemy of state.enemies) {
+    if (enemy.kind === "lobizon") continue; // sprite propio, F5
+    const index = tileIndex(dungeon, enemy.x, enemy.y);
+    if (!state.visible.has(index)) continue;
+    const vx = enemy.x - camera.x;
+    const vy = enemy.y - camera.y;
+    if (vx < 0 || vy < 0 || vx >= VIEWPORT_TILES_WIDE || vy >= VIEWPORT_TILES_TALL) continue;
+    fb.drawSprite(vx, vy, enemySprites[enemy.kind], state.animFrame);
   }
 
   const playerIndex = tileIndex(dungeon, player.x, player.y);
