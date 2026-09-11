@@ -17,7 +17,8 @@
     "build": "tsup",
     "start": "node dist/cli.js",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "simulate": "tsx tools/simulate.ts"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
