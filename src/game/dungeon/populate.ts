@@ -11,7 +11,7 @@ import type { Enemy, ItemPickup } from "../entities.js";
 import type { Rng } from "../rng.js";
 import { nextBool, nextInt, pick, shuffle } from "../rng.js";
 import type { Dungeon, Point } from "./types.js";
-import { isWalkable } from "./types.js";
+import { isWalkable, roomCenter } from "./types.js";
 
 function isInRoom(room: { x: number; y: number; width: number; height: number }, p: Point): boolean {
   return p.x >= room.x && p.x < room.x + room.width && p.y >= room.y && p.y < room.y + room.height;
@@ -44,14 +44,19 @@ export interface PopulateResult {
 }
 
 // Enemigos y objetos según el piso (secciones 6 y 7). La sala inicial nunca
-// tiene enemigos ni objetos. El piso del jefe se puebla aparte (F5).
+// tiene enemigos ni objetos. El piso del jefe solo tiene al lobizón, lejos
+// de la entrada.
 export function populateFloor(
   dungeon: Dungeon,
   floor: number,
   rng: Rng,
   options: PopulateOptions,
 ): PopulateResult {
-  if (dungeon.isBossFloor) return { enemies: [], items: [], rng };
+  if (dungeon.isBossFloor) {
+    const room = dungeon.rooms[0];
+    const spot = room ? roomCenter(room) : dungeon.start;
+    return { enemies: [createEnemy(0, "lobizon", spot.x, spot.y)], items: [], rng };
+  }
 
   const [shuffled, afterShuffle] = shuffle(rng, candidateTiles(dungeon));
   let current = afterShuffle;

@@ -1,7 +1,7 @@
 import { enemies as enemyDefs, speedFactor } from "../content/enemies.js";
 import { enemyHitMessage, enemyMissedMessage } from "../content/messages.js";
-import { decideEnemyMove, decideGhostLightMove } from "./ai/behaviors.js";
-import { computeDistanceMap } from "./ai/distance-map.js";
+import { decideEnemyMove, decideGhostLightMove, decideWerewolfJump } from "./ai/behaviors.js";
+import { computeDistanceMap, stepTowards } from "./ai/distance-map.js";
 import { resolveEnemyAttack } from "./combat.js";
 import { isWalkable, tileIndex, type Point } from "./dungeon/types.js";
 import type { Enemy } from "./entities.js";
@@ -59,7 +59,17 @@ export function resolveEnemyTurns(state: GameState): { state: GameState; events:
         const candidate = decideGhostLightMove(enemy, state.player);
         nextPos = candidate.x === enemy.x && candidate.y === enemy.y ? null : candidate;
       } else if (def.kind === "lobizon") {
-        nextPos = null; // el salto del jefe se resuelve en F5
+        // Ciclo de 3 turnos: persigue, se agazapa (avisa), salta.
+        const phase = enemy.phase % 3;
+        if (phase === 0) {
+          nextPos = stepTowards(state.dungeon, distanceMap, enemy);
+        } else if (phase === 1) {
+          messages.push("El lobizón se agazapa, va a saltar.");
+          nextPos = null;
+        } else {
+          nextPos = decideWerewolfJump(state.dungeon, enemy, state.player);
+        }
+        enemy.phase = phase + 1;
       } else {
         const playerCanSeeEnemy = state.visible.has(tileIndex(state.dungeon, enemy.x, enemy.y));
         const [candidate, nextRng] = decideEnemyMove(

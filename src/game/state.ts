@@ -1,6 +1,6 @@
 import type { EnemyKind } from "../content/enemies.js";
 import { FACON_FLOOR_RANGE, PONCHO_FLOOR_RANGE } from "../content/items.js";
-import { PLAYER_BASE } from "./config.js";
+import { PLAYER_BASE, SCORE_PER_FLOOR } from "./config.js";
 import type { Dungeon } from "./dungeon/types.js";
 import { generateDungeon } from "./dungeon/generate.js";
 import { populateFloor } from "./dungeon/populate.js";
@@ -142,6 +142,6 @@ export function descendToNextFloor(state: GameState): GameState {
     player,
     visible,
     seen,
-    score: state.score + 100,
+    score: state.score + SCORE_PER_FLOOR,
   };
 }

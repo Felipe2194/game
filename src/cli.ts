@@ -18,8 +18,11 @@ import { drawPlayScene } from "./scenes/play.js";
 import { drawMapOverlay } from "./scenes/map-overlay.js";
 import { helpLines } from "./scenes/help.js";
 import { gameOverLines } from "./scenes/gameover.js";
+import { victoryLines } from "./scenes/victory.js";
 import { buildHud } from "./ui/hud.js";
 import { visibleLogLines } from "./ui/log.js";
+import { recordRun } from "./storage/save.js";
+import type { SaveEntry } from "./storage/save.js";
 
 const COLS = 80;
 const GAME_ROWS = VIEWPORT_TILES_TALL * (TILE_SIZE / 2); // filas 2–22 (1-indexado)
@@ -67,6 +70,7 @@ async function main(): Promise<void> {
   const seed = Date.now() >>> 0;
   let state = createInitialState(seed);
   let running = true;
+  let records: SaveEntry[] = [];
 
   const drawOverlayText = (lines: string[]) => {
     lines.forEach((line, i) => {
@@ -94,7 +98,9 @@ async function main(): Promise<void> {
     if (state.mode === "help") {
       drawOverlayText(helpLines);
     } else if (state.mode === "gameover") {
-      drawOverlayText(gameOverLines(state));
+      drawOverlayText(gameOverLines(state, records));
+    } else if (state.mode === "victory") {
+      drawOverlayText(victoryLines(state, records));
     } else {
       const [line1, line2] = visibleLogLines(state.messages);
       process.stdout.write(writeLine(LOG_ROW_1, line1));
@@ -124,6 +130,24 @@ async function main(): Promise<void> {
       }
       if (event.type === "restartRequested") {
         state = createInitialState(Date.now() >>> 0);
+      }
+      if (event.type === "gameover") {
+        records = recordRun({
+          date: new Date().toISOString(),
+          score: state.score,
+          floor: event.floor,
+          cause: event.cause,
+          seed: state.seed,
+        }).top;
+      }
+      if (event.type === "victory") {
+        records = recordRun({
+          date: new Date().toISOString(),
+          score: state.score,
+          floor: event.floor,
+          cause: "victoria",
+          seed: state.seed,
+        }).top;
       }
     }
 

@@ -60,14 +60,36 @@ export function decideEnemyMove(
   }
 }
 
+function stepOnce(from: Point, player: Point): Point {
+  const dx = Math.sign(player.x - from.x);
+  const dy = Math.sign(player.y - from.y);
+  if (dx === 0 && dy === 0) return from;
+  if (Math.abs(player.x - from.x) >= Math.abs(player.y - from.y)) {
+    return { x: from.x + dx, y: from.y };
+  }
+  return { x: from.x, y: from.y + dy };
+}
+
 // La luz mala ignora paredes y siempre te rastrea: se mueve en línea recta
 // hacia el jugador, un eje por turno, sin usar el mapa de distancias.
 export function decideGhostLightMove(enemy: Point, player: Point): Point {
-  const dx = Math.sign(player.x - enemy.x);
-  const dy = Math.sign(player.y - enemy.y);
-  if (dx === 0 && dy === 0) return enemy;
-  if (Math.abs(player.x - enemy.x) >= Math.abs(player.y - enemy.y)) {
-    return { x: enemy.x + dx, y: enemy.y };
+  return stepOnce(enemy, player);
+}
+
+const WEREWOLF_JUMP_DISTANCE = 3;
+
+// El lobizón salta hasta 3 casillas en línea recta hacia el jugador,
+// deteniéndose si choca contra una pared o llega a estar adyacente
+// (sección 6).
+export function decideWerewolfJump(dungeon: Dungeon, enemy: Point, player: Point): Point {
+  let current = enemy;
+  for (let i = 0; i < WEREWOLF_JUMP_DISTANCE; i++) {
+    const next = stepOnce(current, player);
+    if (next.x === current.x && next.y === current.y) break; // ya llegó
+    if (!isWalkable(dungeon, next.x, next.y)) break;
+    current = next;
+    const adjacentToPlayer = Math.abs(current.x - player.x) + Math.abs(current.y - player.y) === 1;
+    if (adjacentToPlayer) break;
   }
-  return { x: enemy.x, y: enemy.y + dy };
+  return current;
 }

@@ -1,6 +1,7 @@
 import type { Action } from "../engine/input.js";
 import { enemies as enemyDefs } from "../content/enemies.js";
 import { enemyDefeatedMessage, playerAttackMessage } from "../content/messages.js";
+import { SCORE_PER_ENEMY, SCORE_VICTORY } from "./config.js";
 import { playerAttackDamage } from "./combat.js";
 import { isWalkable, tileAt } from "./dungeon/types.js";
 import { enemyAt, itemAt } from "./dungeon/populate.js";
@@ -89,11 +90,28 @@ export function step(state: GameState, action: Action): StepResult {
     const def = enemyDefs[target.kind];
     const message = defeated ? enemyDefeatedMessage(def) : playerAttackMessage(def, damage);
 
+    if (defeated && target.kind === "lobizon") {
+      const victoryState: GameState = {
+        ...state,
+        enemies,
+        facingLeft,
+        mode: "victory",
+        score: state.score + SCORE_VICTORY,
+      };
+      return {
+        state: logMessage(victoryState, message),
+        events: [
+          { type: "attacked", enemyKind: target.kind, defeated },
+          { type: "victory", floor: state.floor },
+        ],
+      };
+    }
+
     const attacked: GameState = {
       ...state,
       enemies,
       facingLeft,
-      score: state.score + (defeated ? 5 : 0),
+      score: state.score + (defeated ? SCORE_PER_ENEMY : 0),
     };
 
     return runEnemyTurn(logMessage(attacked, message), [

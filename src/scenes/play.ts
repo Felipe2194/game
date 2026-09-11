@@ -3,6 +3,7 @@ import { dimmed } from "../assets/palette.js";
 import { hero } from "../assets/sprites/hero.js";
 import { enemySprites } from "../assets/sprites/enemies.js";
 import { itemSprites } from "../assets/sprites/items.js";
+import { werewolfCrouchSprite, werewolfSprite } from "../assets/sprites/werewolf.js";
 import { VIEWPORT_TILES_TALL, VIEWPORT_TILES_WIDE } from "../game/config.js";
 import { tileAt, tileIndex } from "../game/dungeon/types.js";
 import type { GameState } from "../game/state.js";
@@ -58,12 +59,17 @@ export function drawPlayScene(fb: Framebuffer, state: GameState): void {
   }
 
   for (const enemy of state.enemies) {
-    if (enemy.kind === "lobizon") continue; // sprite propio, F5
     const index = tileIndex(dungeon, enemy.x, enemy.y);
     if (!state.visible.has(index)) continue;
     const vx = enemy.x - camera.x;
     const vy = enemy.y - camera.y;
     if (vx < 0 || vy < 0 || vx >= VIEWPORT_TILES_WIDE || vy >= VIEWPORT_TILES_TALL) continue;
+
+    if (enemy.kind === "lobizon") {
+      const crouching = enemy.phase % 3 === 2;
+      fb.drawSprite(vx, vy, crouching ? werewolfCrouchSprite : werewolfSprite, state.animFrame);
+      continue;
+    }
     fb.drawSprite(vx, vy, enemySprites[enemy.kind], state.animFrame);
   }
 

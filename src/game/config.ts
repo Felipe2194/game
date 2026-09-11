@@ -20,6 +20,11 @@ export const PLAYER_BASE = {
 
 export const BELT_CAPACITY = 3;
 
+// Puntaje — sección 12 del documento de diseño.
+export const SCORE_PER_FLOOR = 100;
+export const SCORE_PER_ENEMY = 5;
+export const SCORE_VICTORY = 1000;
+
 export const VIEWPORT_TILES_WIDE = 13;
 export const VIEWPORT_TILES_TALL = 7;
 export const TILE_SIZE = 6;

@@ -6,5 +6,6 @@ export type GameEvent =
   | { type: "attacked"; enemyKind: EnemyKind; defeated: boolean }
   | { type: "descended"; floor: number }
   | { type: "gameover"; cause: EnemyKind; floor: number }
+  | { type: "victory"; floor: number }
   | { type: "restartRequested" }
   | { type: "quit" };
