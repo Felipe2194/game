@@ -1,16 +1,23 @@
 import type { Action } from "../engine/input.js";
-import type { GameState } from "./state.js";
+import { isWalkable, tileAt } from "./dungeon/types.js";
+import type { GameState, Mode } from "./state.js";
+import { descendToNextFloor, logMessage, refreshVision } from "./state.js";
 
-export type GameEvent = { type: "moved" } | { type: "blocked" } | { type: "quit" };
+export type GameEvent =
+  | { type: "moved" }
+  | { type: "blocked" }
+  | { type: "descended"; floor: number }
+  | { type: "quit" };
 
 export interface StepResult {
   state: GameState;
   events: GameEvent[];
 }
 
-function isWall(state: GameState, x: number, y: number): boolean {
-  return x <= 0 || y <= 0 || x >= state.room.width - 1 || y >= state.room.height - 1;
-}
+const MODE_TOGGLES: Partial<Record<Action["type"], Mode>> = {
+  viewMap: "map",
+  help: "help",
+};
 
 // step es pura: no toca la terminal ni el reloj. Recibe una acción y
 // devuelve el estado siguiente más los eventos ocurridos, sin efectos
@@ -20,6 +27,31 @@ export function step(state: GameState, action: Action): StepResult {
     return { state, events: [{ type: "quit" }] };
   }
 
+  // M y ? abren/cierran una pantalla superpuesta; no consumen turno.
+  const toggledMode = MODE_TOGGLES[action.type];
+  if (toggledMode) {
+    const nextMode = state.mode === toggledMode ? "play" : toggledMode;
+    return { state: { ...state, mode: nextMode }, events: [] };
+  }
+  if (state.mode !== "play") {
+    // Cualquier otra tecla cierra la pantalla superpuesta.
+    return { state: { ...state, mode: "play" }, events: [] };
+  }
+
+  if (action.type === "descend") {
+    if (tileAt(state.dungeon, state.player.x, state.player.y) !== "stairs") {
+      return {
+        state: logMessage(state, "No hay ninguna escalera acá."),
+        events: [],
+      };
+    }
+    const next = descendToNextFloor(state);
+    return {
+      state: logMessage(next, `Bajás al piso ${next.floor}.`),
+      events: [{ type: "descended", floor: next.floor }],
+    };
+  }
+
   if (action.type !== "move") {
     return { state, events: [] };
   }
@@ -27,18 +59,16 @@ export function step(state: GameState, action: Action): StepResult {
   const nextX = state.player.x + action.dx;
   const nextY = state.player.y + action.dy;
 
-  if (isWall(state, nextX, nextY)) {
+  if (!isWalkable(state.dungeon, nextX, nextY)) {
     return { state, events: [{ type: "blocked" }] };
   }
 
   const facingLeft = action.dx !== 0 ? action.dx < 0 : state.facingLeft;
-
-  return {
-    state: {
-      ...state,
-      player: { x: nextX, y: nextY },
-      facingLeft,
-    },
-    events: [{ type: "moved" }],
+  const moved: GameState = {
+    ...state,
+    player: { ...state.player, x: nextX, y: nextY },
+    facingLeft,
   };
+
+  return { state: refreshVision(moved), events: [{ type: "moved" }] };
 }

@@ -11,19 +11,21 @@ import {
   supportsTruecolor,
 } from "./engine/terminal.js";
 import { centered, writeLine } from "./engine/text.js";
-import { hero } from "./assets/sprites/hero.js";
 import { createInitialState } from "./game/state.js";
 import { step } from "./game/step.js";
+import { TILE_SIZE, VIEWPORT_TILES_TALL, VIEWPORT_TILES_WIDE } from "./game/config.js";
+import { drawPlayScene } from "./scenes/play.js";
+import { drawMapOverlay } from "./scenes/map-overlay.js";
+import { helpLines } from "./scenes/help.js";
+import { buildHud } from "./ui/hud.js";
+import { visibleLogLines } from "./ui/log.js";
 
 const COLS = 80;
-const GAME_ROWS = 21; // filas 2–22 (1-indexado)
+const GAME_ROWS = VIEWPORT_TILES_TALL * (TILE_SIZE / 2); // filas 2–22 (1-indexado)
 const HUD_ROW = 1;
 const LOG_ROW_1 = 23;
 const LOG_ROW_2 = 24;
 const GAME_ORIGIN_ROW = 2;
-
-const TILE_WIDTH = 13;
-const TILE_HEIGHT = 7;
 
 async function waitForMinimumSize(): Promise<void> {
   if (fitsMinimumSize(getSize())) return;
@@ -58,31 +60,41 @@ async function main(): Promise<void> {
   await waitForMinimumSize();
 
   const truecolor = supportsTruecolor();
-  const fb = new Framebuffer(COLS, TILE_HEIGHT * 6);
+  const fb = new Framebuffer(COLS, VIEWPORT_TILES_TALL * TILE_SIZE);
   const renderer = new Renderer(COLS, GAME_ROWS, GAME_ORIGIN_ROW, truecolor);
 
-  let state = createInitialState(TILE_WIDTH, TILE_HEIGHT);
-  const messages = ["Bajás a la Salamanca."];
+  const seed = Date.now() >>> 0;
+  let state = createInitialState(seed);
   let running = true;
 
   const draw = () => {
     fb.clear("·");
-    for (let y = 0; y < state.room.height; y++) {
-      for (let x = 0; x < state.room.width; x++) {
-        const wall = x === 0 || y === 0 || x === state.room.width - 1 || y === state.room.height - 1;
-        fb.fillTile(x, y, wall ? "j" : "a");
-      }
+
+    if (state.mode === "map") {
+      drawMapOverlay(fb, state);
+    } else if (state.mode === "play") {
+      drawPlayScene(fb, state);
     }
-    fb.drawSprite(state.player.x, state.player.y, hero, state.animFrame, state.facingLeft);
 
     renderer.render(fb, (chunk) => process.stdout.write(chunk));
 
     process.stdout.write(
-      writeLine(HUD_ROW, "piso 1  ♥♥♥♥♥♥  atq 1 def 0  [1]· [2]· [3]·            oro 0"),
+      writeLine(HUD_ROW, buildHud(state.floor, state.player, [undefined, undefined, undefined], state.gold, COLS)),
     );
-    const [line1, line2] = messages.slice(-2);
-    process.stdout.write(writeLine(LOG_ROW_1, line1 ?? ""));
-    process.stdout.write(writeLine(LOG_ROW_2, line2 ?? ""));
+
+    if (state.mode === "help") {
+      helpLines.forEach((line, i) => {
+        if (GAME_ORIGIN_ROW + i < LOG_ROW_1) {
+          process.stdout.write(writeLine(GAME_ORIGIN_ROW + i, line));
+        }
+      });
+      process.stdout.write(writeLine(LOG_ROW_1, ""));
+      process.stdout.write(writeLine(LOG_ROW_2, ""));
+    } else {
+      const [line1, line2] = visibleLogLines(state.messages);
+      process.stdout.write(writeLine(LOG_ROW_1, line1));
+      process.stdout.write(writeLine(LOG_ROW_2, line2));
+    }
   };
 
   const scheduler = new Scheduler(
@@ -104,9 +116,6 @@ async function main(): Promise<void> {
         scheduler.stop();
         restoreScreen();
         process.exit(0);
-      }
-      if (event.type === "blocked") {
-        messages.push("No podés pasar por ahí.");
       }
     }
 
