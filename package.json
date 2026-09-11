@@ -3,6 +3,23 @@
   "version": "0.1.0",
   "description": "Roguelike por turnos en pixel art para la terminal",
   "type": "module",
+  "license": "MIT",
+  "author": "Felipe Giovanardi",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Felipe2194/game.git"
+  },
+  "homepage": "https://github.com/Felipe2194/game#readme",
+  "bugs": {
+    "url": "https://github.com/Felipe2194/game/issues"
+  },
+  "keywords": [
+    "roguelike",
+    "terminal",
+    "ascii",
+    "cli-game",
+    "pixel-art"
+  ],
   "bin": {
     "salamanca": "dist/cli.js"
   },
