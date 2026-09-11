@@ -3,8 +3,9 @@ import { enemies as enemyDefs } from "../content/enemies.js";
 import { enemyDefeatedMessage, playerAttackMessage } from "../content/messages.js";
 import { playerAttackDamage } from "./combat.js";
 import { isWalkable, tileAt } from "./dungeon/types.js";
-import { enemyAt } from "./dungeon/populate.js";
+import { enemyAt, itemAt } from "./dungeon/populate.js";
 import type { GameEvent } from "./events.js";
+import { pickUpItem, useBeltSlot } from "./items.js";
 import type { GameState, Mode } from "./state.js";
 import { descendToNextFloor, logMessage, refreshVision } from "./state.js";
 import { resolveEnemyTurns } from "./turns.js";
@@ -63,6 +64,11 @@ export function step(state: GameState, action: Action): StepResult {
     return runEnemyTurn(state, []);
   }
 
+  if (action.type === "useItem") {
+    const result = useBeltSlot(state, action.slot - 1);
+    return result.consumedTurn ? runEnemyTurn(result.state, []) : { state: result.state, events: [] };
+  }
+
   if (action.type !== "move") {
     return { state, events: [] };
   }
@@ -105,5 +111,8 @@ export function step(state: GameState, action: Action): StepResult {
     facingLeft,
   };
 
-  return runEnemyTurn(refreshVision(moved), [{ type: "moved" }]);
+  const pickedUpItem = itemAt(moved.items, nextX, nextY);
+  const afterPickup = pickedUpItem ? pickUpItem(moved, pickedUpItem) : moved;
+
+  return runEnemyTurn(refreshVision(afterPickup), [{ type: "moved" }]);
 }

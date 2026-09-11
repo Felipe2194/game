@@ -1,12 +1,15 @@
 import type { EnemyKind } from "../content/enemies.js";
+import { FACON_FLOOR_RANGE, PONCHO_FLOOR_RANGE } from "../content/items.js";
 import { PLAYER_BASE } from "./config.js";
 import type { Dungeon } from "./dungeon/types.js";
 import { generateDungeon } from "./dungeon/generate.js";
 import { populateFloor } from "./dungeon/populate.js";
-import type { Enemy } from "./entities.js";
+import type { Enemy, ItemPickup } from "./entities.js";
 import { computeVisible } from "./fov/visibility.js";
+import { createEmptyBelt } from "./items.js";
+import type { Belt } from "./items.js";
 import type { Rng } from "./rng.js";
-import { createRng } from "./rng.js";
+import { createRng, nextInt } from "./rng.js";
 
 export type Mode = "play" | "map" | "help" | "gameover" | "victory";
 
@@ -27,6 +30,10 @@ export interface GameState {
   dungeon: Dungeon;
   player: Player;
   enemies: Enemy[];
+  items: ItemPickup[];
+  belt: Belt;
+  faconFloor: number;
+  ponchoFloor: number;
   visible: Set<number>;
   seen: Set<number>;
   messages: string[];
@@ -50,8 +57,14 @@ function withUpdatedVision(dungeon: Dungeon, player: Player, seen: Set<number>):
 
 export function createInitialState(seed: number): GameState {
   const rng = createRng(seed);
-  const [dungeon, afterGen] = generateDungeon(rng, 1);
-  const [enemies, nextRng] = populateFloor(dungeon, 1, afterGen);
+  const [faconFloor, afterFacon] = nextInt(rng, FACON_FLOOR_RANGE[0], FACON_FLOOR_RANGE[1]);
+  const [ponchoFloor, afterPoncho] = nextInt(afterFacon, PONCHO_FLOOR_RANGE[0], PONCHO_FLOOR_RANGE[1]);
+
+  const [dungeon, afterGen] = generateDungeon(afterPoncho, 1);
+  const { enemies, items, rng: nextRng } = populateFloor(dungeon, 1, afterGen, {
+    faconFloor,
+    ponchoFloor,
+  });
   const player: Player = {
     x: dungeon.start.x,
     y: dungeon.start.y,
@@ -70,6 +83,10 @@ export function createInitialState(seed: number): GameState {
     dungeon,
     player,
     enemies,
+    items,
+    belt: createEmptyBelt(),
+    faconFloor,
+    ponchoFloor,
     visible,
     seen,
     messages: ["Bajás a la Salamanca."],
@@ -99,12 +116,20 @@ export function logMessage(state: GameState, message: string): GameState {
 
 // Genera el piso siguiente y reposiciona al jugador en su entrada,
 // conservando vida, equipo y semilla/rng para que la partida siga
-// siendo reproducible.
+// siendo reproducible. El efecto de la vela termina al bajar (sección 7).
 export function descendToNextFloor(state: GameState): GameState {
   const nextFloorNumber = state.floor + 1;
   const [dungeon, afterGen] = generateDungeon(state.rng, nextFloorNumber);
-  const [enemies, nextRng] = populateFloor(dungeon, nextFloorNumber, afterGen);
-  const player: Player = { ...state.player, x: dungeon.start.x, y: dungeon.start.y };
+  const { enemies, items, rng: nextRng } = populateFloor(dungeon, nextFloorNumber, afterGen, {
+    faconFloor: state.faconFloor,
+    ponchoFloor: state.ponchoFloor,
+  });
+  const player: Player = {
+    ...state.player,
+    x: dungeon.start.x,
+    y: dungeon.start.y,
+    vision: PLAYER_BASE.vision,
+  };
   const { visible, seen } = withUpdatedVision(dungeon, player, new Set());
 
   return {
@@ -113,6 +138,7 @@ export function descendToNextFloor(state: GameState): GameState {
     floor: nextFloorNumber,
     dungeon,
     enemies,
+    items,
     player,
     visible,
     seen,

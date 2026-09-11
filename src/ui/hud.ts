@@ -1,3 +1,4 @@
+import type { ItemKind } from "../content/items.js";
 import type { Player } from "../game/state.js";
 
 function hearts(player: Player): string {
@@ -6,21 +7,17 @@ function hearts(player: Player): string {
   return full + empty;
 }
 
-export interface BeltSlot {
-  label: string;
-}
-
 // Referencia de sección 10: `piso 3  ♥♥♥♥♡♡  atq 2 def 1  [1]mate [2]vela [3]·            oro 12`
 export function buildHud(
   floor: number,
   player: Player,
-  belt: [BeltSlot | undefined, BeltSlot | undefined, BeltSlot | undefined],
+  belt: (ItemKind | undefined)[],
   gold: number,
   width: number,
 ): string {
   const left =
     `piso ${floor}  ${hearts(player)}  atq ${player.attack} def ${player.defense}  ` +
-    belt.map((slot, i) => `[${i + 1}]${slot?.label ?? "·"}`).join(" ");
+    belt.map((slot, i) => `[${i + 1}]${slot ?? "·"}`).join(" ");
   const right = `oro ${gold}`;
   const gap = Math.max(1, width - left.length - right.length);
   return left + " ".repeat(gap) + right;

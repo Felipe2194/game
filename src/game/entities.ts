@@ -1,5 +1,13 @@
 import type { EnemyKind } from "../content/enemies.js";
 import { enemies } from "../content/enemies.js";
+import type { ItemKind } from "../content/items.js";
+
+export interface ItemPickup {
+  id: number;
+  kind: ItemKind;
+  x: number;
+  y: number;
+}
 
 export interface Enemy {
   id: number;

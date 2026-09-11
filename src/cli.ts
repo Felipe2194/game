@@ -89,9 +89,7 @@ async function main(): Promise<void> {
 
     renderer.render(fb, (chunk) => process.stdout.write(chunk));
 
-    process.stdout.write(
-      writeLine(HUD_ROW, buildHud(state.floor, state.player, [undefined, undefined, undefined], state.gold, COLS)),
-    );
+    process.stdout.write(writeLine(HUD_ROW, buildHud(state.floor, state.player, state.belt, state.gold, COLS)));
 
     if (state.mode === "help") {
       drawOverlayText(helpLines);

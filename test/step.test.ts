@@ -3,6 +3,7 @@ import type { Dungeon, TileType } from "../src/game/dungeon/types.js";
 import type { GameState, Player } from "../src/game/state.js";
 import { createRng } from "../src/game/rng.js";
 import { createEnemy } from "../src/game/entities.js";
+import { createEmptyBelt } from "../src/game/items.js";
 import { step } from "../src/game/step.js";
 
 function makeOpenDungeon(size: number): Dungeon {
@@ -37,6 +38,10 @@ function makeState(overrides: Partial<GameState> = {}): GameState {
     dungeon,
     player: makePlayer(),
     enemies: [],
+    items: [],
+    belt: createEmptyBelt(),
+    faconFloor: 2,
+    ponchoFloor: 3,
     visible: new Set(),
     seen: new Set(),
     messages: [],
