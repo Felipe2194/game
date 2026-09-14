@@ -22,27 +22,7 @@ export const palette: Record<PaletteKey, string> = {
   l: "#4e342e", // Madera, cazador errante, sombras marrones
   m: "#f4f4f4", // Texto, brillo de vidrio (poción)
   n: "#c9a26b", // Capa de cuero, ración de carne
-  o: "#94b0c2", // Borde superior de paredes, metal, daga
-};
-
-// Tabla de atenuación para casillas recordadas (sección 10).
-export const dimmed: Record<PaletteKey, PaletteKey> = {
-  "·": "·",
-  o: "j",
-  j: "a",
-  l: "a",
-  f: "l",
-  n: "l",
-  e: "l",
-  a: "·",
-  b: "·",
-  c: "·",
-  d: "·",
-  g: "·",
-  h: "·",
-  i: "·",
-  k: "·",
-  m: "·",
+  o: "#94b0c2", // Pared iluminada de frente (linda con piso), metal, daga
 };
 
 export interface Rgb {

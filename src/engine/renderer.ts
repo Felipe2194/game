@@ -2,6 +2,13 @@ import * as THREE from "three";
 import { rgbOf } from "../assets/palette.js";
 import { TILE_SIZE } from "../game/config.js";
 import type { Framebuffer } from "./framebuffer.js";
+import type { Lightmap } from "./lightmap.js";
+
+// Oscurece el borde superior/izquierdo de cada tile una fracción, para que
+// se note la grilla (sección: sirve para ubicar en qué casilla está cada
+// cosa, ver feedback de sesión — sin esto, sprites más grandes que un
+// tile hacían difícil saber a qué casilla atacar).
+const GRID_EDGE_FACTOR = 0.82;
 
 // Un personaje/criatura/objeto a dibujar sobre el framebuffer de tiles,
 // como imagen real (public/sprites/) en vez de pixel art de 6×6 — ver
@@ -101,7 +108,8 @@ export class Renderer {
 
   // Actualiza los sprites de personajes/criaturas/objetos (pool reutilizado
   // entre frames, sin recrear meshes). Se llama antes de `render()`.
-  syncEntities(placements: EntitySpritePlacement[]): void {
+  // `light` los tiñe con el mismo brillo que su tile (efecto linterna).
+  syncEntities(placements: EntitySpritePlacement[], light?: Lightmap): void {
     while (this.entityPool.length < placements.length) {
       const sprite = new THREE.Sprite(
         new THREE.SpriteMaterial({ transparent: true, alphaTest: 0.3, depthWrite: false }),
@@ -135,18 +143,27 @@ export class Renderer {
       const worldX = centerXpx - this.fbWidth / 2;
       const worldY = this.fbHeight / 2 - bottomYpx + heightWorld / 2;
       sprite.position.set(worldX, worldY, 0.1);
+
+      const brightness = light ? light.get(Math.round(placement.tileX), Math.round(placement.tileY)) : 1;
+      material.color.setScalar(Math.max(0.15, brightness));
     }
   }
 
-  render(fb: Framebuffer): void {
+  render(fb: Framebuffer, light?: Lightmap): void {
     const data = this.imageData.data;
     for (let y = 0; y < this.fbHeight; y++) {
+      const tileY = Math.floor(y / TILE_SIZE);
+      const edgeY = y % TILE_SIZE === 0;
       for (let x = 0; x < this.fbWidth; x++) {
+        const tileX = Math.floor(x / TILE_SIZE);
         const { r, g, b } = rgbOf(fb.get(x, y));
+        const brightness = light ? light.get(tileX, tileY) : 1;
+        const edge = light && (edgeY || x % TILE_SIZE === 0) ? GRID_EDGE_FACTOR : 1;
+        const factor = brightness * edge;
         const i = (y * this.fbWidth + x) * 4;
-        data[i] = r;
-        data[i + 1] = g;
-        data[i + 2] = b;
+        data[i] = r * factor;
+        data[i + 1] = g * factor;
+        data[i + 2] = b * factor;
         data[i + 3] = 255;
       }
     }

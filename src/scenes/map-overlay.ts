@@ -1,5 +1,4 @@
 import type { PaletteKey } from "../assets/palette.js";
-import { dimmed } from "../assets/palette.js";
 import { tileAt, tileIndex } from "../game/dungeon/types.js";
 import type { GameState } from "../game/state.js";
 import type { Framebuffer } from "../engine/framebuffer.js";
@@ -31,12 +30,11 @@ export function drawMapOverlay(fb: Framebuffer, state: GameState): void {
       const index = tileIndex(dungeon, x, y);
       if (!state.seen.has(index)) continue;
       const color = tileColor(tileAt(dungeon, x, y));
-      const drawColor = state.visible.has(index) ? color : dimmed[color];
       const px = offsetX + x * SCALE;
       const py = offsetY + y * SCALE;
       for (let dy = 0; dy < SCALE; dy++) {
         for (let dx = 0; dx < SCALE; dx++) {
-          fb.set(px + dx, py + dy, drawColor);
+          fb.set(px + dx, py + dy, color);
         }
       }
     }

@@ -106,10 +106,14 @@ El azar sale de un generador propio con semilla (mulberry32) guardado en el esta
 | Estado | Cómo se dibuja |
 |---|---|
 | Nunca vista | Color de fondo |
-| Recordada | Versión atenuada del tile, sin enemigos ni objetos |
-| Visible | Tile completo con lo que haya encima |
+| Recordada | Tile a brillo bajo fijo, sin enemigos ni objetos |
+| Visible | Tile a brillo según distancia (efecto linterna), con lo que haya encima |
 
 Si aparecen artefactos visuales molestos, se reemplaza por shadowcasting simétrico sin tocar el resto del código.
+
+**Efecto linterna (`engine/lightmap.ts`).** En vez de remapear cada color a otra entrada de la paleta (versión vieja: tabla `dimmed` en `palette.ts`, ya no existe), `drawPlayScene` calcula un brillo 0–1 por tile visible — 1 pegado al jugador, cayendo hasta un mínimo (~0.5) en el borde del radio de visión — y un brillo fijo bajo (~0.28) para las recordadas. `Renderer.render` multiplica el color real del tile por ese brillo al armar la textura, así una casilla recordada sigue siendo el mismo color de piso/pared, solo más oscuro — no una silueta distinta ni negro puro. Los sprites de personajes (`Renderer.syncEntities`) se tiñen con el mismo brillo del tile en el que están parados, para que no desentonen con el piso iluminado. Antorcha activa = radio de visión más grande (5→8) = el mismo degradé llega más lejos, sin lógica aparte.
+
+**Grilla.** `Renderer.render` oscurece el borde superior/izquierdo de cada tile un 18% (`GRID_EDGE_FACTOR`). Sin esto, sprites más grandes que un tile (todos, desde el retema a imágenes reales) hacían difícil saber en qué casilla exacta estaba parada una criatura — y por lo tanto a qué casilla había que moverse para atacarla.
 
 **Persecución.** Un solo mapa de distancias (BFS desde el jugador) por turno sirve para todos los enemigos: cada uno se mueve a la casilla vecina con menor distancia. El familiar usa el mismo mapa aunque no te vea. La luz mala usa distancia en línea recta e ignora paredes.
 
@@ -198,18 +202,25 @@ Los enemigos no tienen animación propia todavía (un solo frame, quietos); solo
 
 ### Animación
 
-El renderer dibuja inmediatamente después de cada tecla y, además, cada ~250 ms para las animaciones de 2 frames (por ahora, solo el jugador). El framebuffer de tiles solo se re-sube a textura en cada uno de esos redibujados; los sprites de personajes se reposicionan aparte, en `Renderer.syncEntities`.
+Dos animaciones separadas, de origen distinto:
+
+1. **Respirar / parpadeo de llama (2 frames).** Un `setInterval` de ~250 ms avanza `state.animFrame`; en cada frame de render eso decide si se usa `hero-0.png` o `hero-1.png`. Cosmético, no afecta la lógica del juego.
+2. **Deslizamiento entre casillas.** La lógica sigue siendo instantánea (`step()` devuelve la posición final de una), pero `main.ts` guarda, por cada movimiento real de jugador o enemigo, un `{from, to, start}` y lo interpola con un `requestAnimationFrame` continuo (`ease-out cúbico`, ~130 ms) — así un personaje se desliza a la casilla nueva en vez de teletransportarse. Solo se anima si el piso no cambió (bajar escalera o reiniciar la partida deja de animar y arranca en la posición final directamente, no tendría sentido deslizar entre mazmorras distintas).
+
+El framebuffer de tiles (paredes/piso/escalera) y el `Lightmap` solo se recalculan cuando cambia el estado lógico (una vez por tecla), no en cada frame de la animación — lo único que corre a 60 fps es el `requestAnimationFrame` reposicionando los sprites de personajes y volviendo a pedirle a Three.js que dibuje.
 
 ## 11. Pantallas
 
 | Escena | Contenido |
 |---|---|
-| Menú | Logo, jugar, cómo jugar, récords, salir |
-| Jugando | Mapa, HUD, log |
+| Portada | Cazador errante de fondo (`hero-0.png`, cuadro fijo sin grilla/niebla) + título y controles; cualquier tecla o click arranca la partida |
+| Jugando | Mapa con efecto linterna, HUD, log |
 | Mapa | Superposición del piso completo a 2×2 px por casilla (56×32 px), solo lo explorado |
 | Ayuda | Controles y leyenda de sprites |
 | Game over | Causa ("Te mató un espíritu del bosque en el piso 4"), puntaje, récord, tecla para reintentar |
-| Victoria | El Alfa derrotado, estadísticas de la partida |
+| Victoria | Cuadro fijo con el cazador y el Alfa derrotado detrás del texto (mismo mecanismo que la portada), puntaje y récords |
+
+La Portada y la Victoria comparten `renderTableau`/`victoryTableau` en `main.ts`: un piso liso a brillo pleno (sin grilla ni niebla) con uno o más sprites puestos a mano — no pasan por `drawPlayScene` ni por el `Lightmap`. El menú de la sección original (jugar/cómo jugar/récords/salir como opciones separadas) sigue sin implementarse; la portada de hoy es solo "portada + arrancar".
 
 ## 12. Puntaje y guardado
 
@@ -254,7 +265,7 @@ Esto permite tres cosas:
 2. **Simulador.** Un bot juega miles de partidas sin pantalla para medir en qué piso muere la gente y ajustar el balance con números.
 3. **Repeticiones y desafío diario.** Semilla más lista de acciones reproduce la partida exacta.
 
-El framebuffer (grilla de índices de paleta) sigue siendo la interfaz entre el juego y la presentación. En la implementación actual el renderer vuelca esa grilla entera a un canvas 2D fuera de pantalla usado como textura (`THREE.CanvasTexture`, `NearestFilter`) de un único plano en la escena — un solo draw call, sin diff, porque a 78×42 px volcarla entera es barato. El HUD y el log ya no son parte del framebuffer: son texto en el DOM superpuesto al canvas (`#hud`, `#log`, `#overlay` en `index.html`), que sí solo se actualiza cuando cambia.
+El framebuffer (grilla de índices de paleta) sigue siendo la interfaz entre el juego y la presentación, acompañado ahora de un `Lightmap` (brillo 0–1 por tile, sección 9) para el efecto linterna. En la implementación actual el renderer vuelca esa grilla entera a un canvas 2D fuera de pantalla usado como textura (`THREE.CanvasTexture`, `NearestFilter`) de un único plano en la escena, multiplicando cada pixel por el brillo del `Lightmap` y oscureciendo el borde de cada tile para la grilla — un solo draw call, sin diff, porque a 78×42 px volcarla entera es barato. El HUD y el log ya no son parte del framebuffer: son texto en el DOM superpuesto al canvas (`#hud`, `#log`, `#overlay` en `index.html`), que sí solo se actualiza cuando cambia.
 
 ### Diferencias con la versión de terminal
 
