@@ -1,11 +1,48 @@
 import * as THREE from "three";
 import { rgbOf } from "../assets/palette.js";
+import { TILE_SIZE } from "../game/config.js";
 import type { Framebuffer } from "./framebuffer.js";
 
-// Renderer de Three.js: en vez de convertir el framebuffer a bloques ANSI
-// (versión terminal), lo vuelca a un canvas 2D fuera de pantalla que se usa
-// como textura de un único plano — un solo draw call, con `NearestFilter`
-// para que el pixel art no se suavice (sección 13/14 del documento).
+// Un personaje/criatura/objeto a dibujar sobre el framebuffer de tiles,
+// como imagen real (public/sprites/) en vez de pixel art de 6×6 — ver
+// EntitySprite en scenes/play.ts. `tileX`/`tileY` son coordenadas de tile
+// en vista de cámara (mismas unidades que el framebuffer / TILE_SIZE);
+// el sprite se ancla por el borde inferior del tile ("los pies").
+export interface EntitySpritePlacement {
+  image: string;
+  tileX: number;
+  tileY: number;
+  heightTiles: number;
+  flipX?: boolean;
+}
+
+const textureLoader = new THREE.TextureLoader();
+const textureCache = new Map<string, THREE.Texture>();
+
+function loadSpriteTexture(path: string): THREE.Texture {
+  let texture = textureCache.get(path);
+  if (!texture) {
+    texture = textureLoader.load(path);
+    // Nearest al agrandar (pixel art nítido); lineal al achicar (evita el
+    // ruido de aliasing cuando un sprite se ve más chico que su imagen
+    // nativa, p. ej. la moneda).
+    texture.magFilter = THREE.NearestFilter;
+    texture.minFilter = THREE.LinearFilter;
+    texture.wrapS = THREE.ClampToEdgeWrapping;
+    texture.wrapT = THREE.ClampToEdgeWrapping;
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.generateMipmaps = false;
+    textureCache.set(path, texture);
+  }
+  return texture;
+}
+
+// Renderer de Three.js: el framebuffer de tiles (paleta de 16 colores) se
+// vuelca a un canvas 2D fuera de pantalla usado como textura de un único
+// plano de fondo — con `NearestFilter` para que el pixel art no se
+// suavice (sección 13/14 del documento). Los personajes/criaturas/objetos
+// se dibujan aparte, como sprites de Three.js con imágenes reales
+// (public/sprites/), sobre ese fondo.
 export class Renderer {
   private readonly scene = new THREE.Scene();
   private readonly camera: THREE.OrthographicCamera;
@@ -15,6 +52,7 @@ export class Renderer {
   private readonly imageData: ImageData;
   private readonly fbWidth: number;
   private readonly fbHeight: number;
+  private readonly entityPool: THREE.Sprite[] = [];
 
   constructor(canvas: HTMLCanvasElement, fbWidth: number, fbHeight: number) {
     this.fbWidth = fbWidth;
@@ -59,6 +97,45 @@ export class Renderer {
       Math.floor(Math.min(cssWidth / this.fbWidth, cssHeight / this.fbHeight)),
     );
     this.webgl.setSize(this.fbWidth * scale, this.fbHeight * scale);
+  }
+
+  // Actualiza los sprites de personajes/criaturas/objetos (pool reutilizado
+  // entre frames, sin recrear meshes). Se llama antes de `render()`.
+  syncEntities(placements: EntitySpritePlacement[]): void {
+    while (this.entityPool.length < placements.length) {
+      const sprite = new THREE.Sprite(
+        new THREE.SpriteMaterial({ transparent: true, alphaTest: 0.3, depthWrite: false }),
+      );
+      this.scene.add(sprite);
+      this.entityPool.push(sprite);
+    }
+
+    for (let i = 0; i < this.entityPool.length; i++) {
+      const sprite = this.entityPool[i]!;
+      const placement = placements[i];
+      if (!placement) {
+        sprite.visible = false;
+        continue;
+      }
+      sprite.visible = true;
+
+      const texture = loadSpriteTexture(placement.image);
+      const material = sprite.material;
+      if (material.map !== texture) material.map = texture;
+
+      const img = texture.image as { width?: number; height?: number } | undefined;
+      const aspect = img?.width && img?.height ? img.width / img.height : 1;
+      const heightWorld = placement.heightTiles * TILE_SIZE;
+      const widthWorld = heightWorld * aspect;
+      sprite.scale.set(placement.flipX ? -widthWorld : widthWorld, heightWorld, 1);
+
+      // Ancla el sprite por el borde inferior del tile ("los pies").
+      const centerXpx = (placement.tileX + 0.5) * TILE_SIZE;
+      const bottomYpx = (placement.tileY + 1) * TILE_SIZE;
+      const worldX = centerXpx - this.fbWidth / 2;
+      const worldY = this.fbHeight / 2 - bottomYpx + heightWorld / 2;
+      sprite.position.set(worldX, worldY, 0.1);
+    }
   }
 
   render(fb: Framebuffer): void {

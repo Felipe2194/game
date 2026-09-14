@@ -163,30 +163,42 @@ No se dibujan versiones aparte: se aplica una tabla de reemplazo sobre el sprite
 | f, n, e | l |
 | a y cualquier otro | fondo |
 
-### Sprites (todos 6×6)
+### Tiles (6×6, framebuffer de paleta)
 
-| Grupo | Sprites | Frames |
-|---|---|---|
-| Tiles | Pared, piso, escalera, sala del jefe (piso decorado) | 1 |
-| Jugador | Cazador errante (se espeja al ir a la izquierda) | 2 (respira, llama parpadea) |
-| Enemigos | Escarabajo de río, cuervo sombrío, espíritu del bosque, lobo acechador, fuego fatuo | 2 |
-| Jefe | El Alfa / Gran Draco normal, agazapado | 2 + 1 |
-| Objetos | Poción de vida, antorcha, ración de carne, daga de caza, capa de cuero, moneda | 1 |
-| Efectos | Golpe (destello), muerte (humo) | 1–2 |
+Pared, piso y escalera siguen siendo color plano de la paleta de 16 colores, dibujados en el framebuffer (`Framebuffer.fillTile`) — sección 14. No tienen arte propio todavía (pendiente: sala del jefe con piso decorado, efectos de golpe/muerte).
 
-> **Referencia de arte "GANK — El Monte Oscuro" (`sheet.png`).** Hoja de diseño ilustrada (no pixel art 6×6) que definió la nueva dirección visual. Los sprites de 6×6 de `src/assets/sprites/` ya están retemados a partir de esta referencia (`hero.ts`, `enemies.ts`, `alfa.ts`, `items.ts`), reutilizando la paleta de 16 colores existente — ver sección 6 y 7 para la tabla final de enemigos y objetos.
+### Personajes, criaturas y objetos (imágenes reales, `public/sprites/`)
 
-### Reglas de estilo
+> **Referencia de arte "GANK — El Monte Oscuro" (`sheet.png`).** A diferencia de los tiles, el jugador, los enemigos, el jefe y los objetos (salvo la moneda) **no** son pixel art de 6×6 generado a mano: son recortes reales de `sheet.png`, con el fondo de cada tarjeta convertido a transparencia, servidos como PNG desde `public/sprites/` y dibujados por `Renderer.syncEntities` como `THREE.Sprite` (billboards) sobre el framebuffer de tiles — ver `scenes/play.ts` (`playEntitySprites`) y sección 14. Cada uno tiene una altura fija en tiles (`heightTiles`); el ancho sale del aspect ratio real de la imagen, y se ancla por el borde inferior del tile ("los pies").
 
-- Máximo 4 colores por sprite, más transparente.
-- Silueta reconocible sobre el piso (`a`): nada de sprites oscuros sin contorno claro.
-- Los enemigos llevan ojos en `d` o `g` para detectarlos rápido.
-- Objetos útiles en tonos cálidos (`f`, `n`, `e`); peligros en `c`, `d`, `g`.
-- Sin degradados ni antialiasing.
+| Grupo | Sprite | Archivo | Alto (tiles) | Frames |
+|---|---|---|---|---|
+| Jugador | Cazador errante (se espeja al ir a la izquierda) | `hero-0.png` / `hero-1.png` | 1.6 | 2 (respira) |
+| Enemigo | Escarabajo de río | `escarabajo.png` | 0.9 | 1 |
+| Enemigo | Cuervo sombrío | `cuervo.png` | 1.0 | 1 |
+| Enemigo | Espíritu del bosque | `espiritu.png` | 1.4 | 1 |
+| Enemigo | Lobo acechador | `lobo.png` | 1.3 | 1 |
+| Enemigo | Fuego fatuo | `fuego-fatuo.png` | 1.0 | 1 |
+| Jefe | El Alfa / Gran Draco (normal / agazapado) | `alfa.png` | 1.8 / 1.5 | 1 |
+| Objeto | Poción de vida | `pocion.png` | 0.8 | 1 |
+| Objeto | Antorcha | `antorcha.png` | 0.8 | 1 |
+| Objeto | Ración de carne | `racion.png` | 0.8 | 1 |
+| Objeto | Daga de caza | `daga.png` | 0.8 | 1 |
+| Objeto | Capa de cuero | `capa.png` | 0.8 | 1 |
+| Objeto | Moneda (sin arte en `sheet.png`, ícono generado aparte) | `moneda.png` | 0.55 | 1 |
+
+Los enemigos no tienen animación propia todavía (un solo frame, quietos); solo el jugador tiene 2 frames (respira/llama parpadea), recortados de la fila "Animaciones → Quieto" de `sheet.png`. El jefe reutiliza el mismo `alfa.png` para el estado "agazapado", solo un poco más chico (1.5 en vez de 1.8 tiles) como telegraph visual, ya que la referencia no incluye una pose agachada aparte.
+
+### Reglas de estilo (tiles y assets nuevos)
+
+- Tiles: máximo 4 colores por sprite, más transparente; sin degradados ni antialiasing (regla original, sección 10 histórica).
+- Sprites de `public/sprites/`: recorte ajustado al contenido real (sin franjas de fondo ni líneas divisorias del sheet — ver nota abajo), fondo transparente, silueta reconocible sobre el piso oscuro.
+
+> **Nota (líneas divisorias del sheet).** `sheet.png` separa cada tarjeta con una línea fina. Si un recorte queda demasiado pegado al borde de su tarjeta, esa línea sobrevive el recorte como una columna opaca y gris aislada — invisible a simple vista en el PNG pero muy notoria en el juego, ya escalada. Antes de dar un sprite por terminado, conviene revisar sus columnas de borde (opacas, baja saturación, aisladas por transparencia) y no solo mirar el PNG de reojo.
 
 ### Animación
 
-El renderer dibuja inmediatamente después de cada tecla y, además, cada ~250 ms para las animaciones de 2 frames. Como solo se escriben las celdas que cambiaron, el consumo es mínimo.
+El renderer dibuja inmediatamente después de cada tecla y, además, cada ~250 ms para las animaciones de 2 frames (por ahora, solo el jugador). El framebuffer de tiles solo se re-sube a textura en cada uno de esos redibujados; los sprites de personajes se reposicionan aparte, en `Renderer.syncEntities`.
 
 ## 11. Pantallas
 
@@ -298,12 +310,12 @@ salamanca/
 │   │   └── log.ts
 │   ├── assets/
 │   │   ├── palette.ts        # 16 colores, tabla de atenuación
-│   │   └── sprites/          # hero.ts, enemies.ts, alfa.ts, items.ts (tiles.ts y fx.ts: pendientes)
+│   │   └── sprites/          # items.ts: moneda (único sprite de 6×6 que queda)
 │   └── storage/
 │       └── save.ts           # récords en localStorage (sección 12)
+├── public/
+│   └── sprites/               # PNG reales recortados de sheet.png (hero, enemigos, jefe, objetos)
 ├── tools/
-│   ├── png-to-sprite.ts      # PNG del modo diseño → sprite en texto
-│   ├── preview-sprites.ts    # muestra todos los sprites en la terminal
 │   └── simulate.ts           # bot headless para balance
 └── test/
     ├── rng.test.ts
@@ -315,16 +327,26 @@ salamanca/
 
 ## 16. Formatos de datos
 
-### Sprite
+### Sprite de tile (pixel art de 6×6, solo la moneda)
 
 ```ts
-// src/assets/sprites/hero.ts
-export const hero = {
-  frames: [
-    ["..ll.e", ".llllf", "llllll", ".llll.", ".l..l.", "......"],
-    ["..ll.f", ".lllle", "llllll", ".llll.", "l...l.", "......"],
-  ],
+// src/assets/sprites/items.ts
+export const monedaSprite = {
+  frames: [[".ffff.", ".fnnf.", ".fnnf.", ".ffff.", "......"]],
 };
+```
+
+### Sprite de personaje/criatura/objeto (imagen real, el resto)
+
+```ts
+// src/engine/renderer.ts — lo que arma scenes/play.ts (playEntitySprites)
+export interface EntitySpritePlacement {
+  image: string; // ruta bajo public/sprites/, p. ej. "/sprites/hero-0.png"
+  tileX: number; // columna de tile en vista de cámara
+  tileY: number; // fila de tile en vista de cámara
+  heightTiles: number; // alto visual; el ancho sale del aspect ratio real
+  flipX?: boolean;
+}
 ```
 
 ### Enemigo
@@ -357,23 +379,17 @@ export const enemies = {
 
 Probar en Chrome, Firefox, Safari y Edge de escritorio; el soporte táctil/móvil todavía no está implementado (el juego es solo de teclado).
 
-## 18. Brief para el modo diseño
+## 18. Pipeline de assets (`public/sprites/`)
 
-**Restricciones que no se negocian:** casillas de 6×6 px, la paleta de 16 colores de la sección 10, máximo 4 colores por sprite y fondo transparente.
+Superado el brief original de "modo diseño" (pixel art de 6×6 dibujado a mano): jugador, enemigos, jefe y objetos salen directamente de `sheet.png` (la referencia de arte "GANK — El Monte Oscuro"), recortados y procesados así:
 
-Qué diseñar:
+1. **Recortar** la tarjeta del personaje/objeto en `sheet.png` (coordenadas a ojo, iterando con capturas hasta encajar bien).
+2. **Quitar el fondo:** el fondo de cada tarjeta es casi negro pero no un color parejo; se mide por color-distancia contra las 4 esquinas del recorte y se pasa a alfa con una transición suave (no todo o nada), para no dejar un borde duro.
+3. **Endurecer y recortar al contenido real:** todo alfa por debajo de un umbral pasa a 0, y se recorta a la caja del contenido opaco restante (+2 px de margen). Esto saca el "fondo casi transparente" que el paso 2 deja.
+4. **Revisar las columnas de borde** (ver nota de la sección 10): las tarjetas de `sheet.png` están separadas por una línea fina, y si el recorte del paso 1 queda pegado a una tarjeta vecina, esa línea sobrevive los pasos 2–3 como una columna angosta, opaca, de saturación muy baja (gris) — se nota poco en el PNG pero mucho ya escalada en el juego. Se detecta buscando columnas cerca de los bordes que sean mayormente opacas y de baja saturación, aisladas del resto del sprite por transparencia; se borran y se vuelve a recortar al contenido real.
+5. Copiar el PNG final a `public/sprites/<nombre>.png` y sumarlo a las tablas de `scenes/play.ts` (`ENEMY_SPRITE`/`ITEM_SPRITE`/hero) con su `heightTiles`.
 
-1. **Hoja de tiles:** pared, piso, escalera y piso decorado del jefe.
-2. **Carpincho:** 2 frames mirando a la derecha.
-3. **Enemigos:** rata, murciélago, esqueleto, familiar y luz mala con 2 frames cada uno; lobizón con 2 frames más la pose agazapado.
-4. **Objetos:** mate, vela, alfajor, facón, poncho y moneda.
-5. **Efectos:** golpe y muerte.
-6. **Logo** del menú, máximo 60×10 px.
-7. **Pantallas de referencia** a 80×46 px: exploración, combate con log, mapa superpuesto y game over.
-
-Las versiones atenuadas no se diseñan: salen de la tabla de la sección 10.
-
-Exportar cada hoja como PNG a escala 1×, sin fondo, para pasarla por `tools/png-to-sprite.ts`.
+Sigue pendiente (no hay referencia en `sheet.png`): tiles decorativos (piso de la sala del jefe), efectos de golpe/muerte, logo del menú, y animación propia de los enemigos (hoy tienen un solo frame; solo el jugador respira).
 
 ## 19. Hoja de ruta
 
@@ -387,14 +403,15 @@ Exportar cada hoja como PNG a escala 1×, sin fondo, para pasarla por `tools/png
 | F5 · Contenido | Familiar, luz mala, lobizón, victoria, puntaje y récords | Se puede ganar una partida completa |
 | F6 · Balance y pulido | Simulador, ajuste de tablas, mapa superpuesto, ayuda, fallback 256 colores | Un jugador promedio llega al piso 5–6 |
 | F7 · Publicación | npm, binarios, README con GIF | `npx salamanca` funciona en una máquina limpia |
+| F8 · Migración a web | Vite + Three.js reemplazan terminal/ANSI; retema visual completo a "GANK — Monte Oscuro" a partir de `sheet.png` (jugador, enemigos, jefe y objetos como imágenes reales en `public/sprites/`); récords a `localStorage`; deploy a Vercel | El juego se juega en el navegador, con los gráficos de `sheet.png`, y el link de Vercel funciona en una máquina limpia |
 
 ## 20. Decisiones pendientes
 
-| Decisión | Opciones |
-|---|---|
-| Nombre y paquete npm | Salamanca (provisional) · otro |
-| Temática | Folklore argentino en pisos profundos · mazmorra clásica genérica |
-| Movimiento | 4 direcciones (más simple) · 8 direcciones (más táctico, requiere teclas diagonales) |
-| Bajar escalera | Con Enter (evita accidentes) · automático al pisarla |
-| Sonido | Campana de la terminal en golpes y muerte · silencio |
-| Después de la victoria | Fin de partida · modo infinito con dificultad creciente |
+| Decisión | Opciones | Estado |
+|---|---|---|
+| Nombre y paquete npm | Salamanca (provisional) · otro | Paquete sigue llamándose `salamanca` (metadata interna); el juego en pantalla es "Bosque Oscuro" / "GANK" — falta unificar si se publica más ampliamente |
+| Temática | Folklore argentino en pisos profundos · mazmorra clásica genérica | **Resuelto:** "GANK — El Monte Oscuro", a partir de `sheet.png` (F8) |
+| Movimiento | 4 direcciones (más simple) · 8 direcciones (más táctico, requiere teclas diagonales) | Pendiente — sigue en 4 direcciones |
+| Bajar escalera | Con Enter (evita accidentes) · automático al pisarla | **Resuelto:** con Enter |
+| Sonido | Campana de la terminal en golpes y muerte · silencio | Pendiente — no aplica igual en la versión web (no hay campana de terminal); a definir con Web Audio |
+| Después de la victoria | Fin de partida · modo infinito con dificultad creciente | Pendiente — sigue en fin de partida |

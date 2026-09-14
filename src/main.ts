@@ -5,7 +5,7 @@ import { Renderer } from "./engine/renderer.js";
 import { Scheduler } from "./engine/scheduler.js";
 import { createInitialState } from "./game/state.js";
 import { step } from "./game/step.js";
-import { drawPlayScene } from "./scenes/play.js";
+import { drawPlayScene, playEntitySprites } from "./scenes/play.js";
 import { drawMapOverlay } from "./scenes/map-overlay.js";
 import { helpLines } from "./scenes/help.js";
 import { gameOverLines } from "./scenes/gameover.js";
@@ -53,6 +53,7 @@ function draw(): void {
     drawPlayScene(fb, state);
   }
 
+  renderer.syncEntities(state.mode === "play" ? playEntitySprites(state) : []);
   renderer.render(fb);
 
   hudEl!.textContent = buildHud(state.floor, state.player, state.belt, state.gold, HUD_WIDTH_CHARS);
