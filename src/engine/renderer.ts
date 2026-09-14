@@ -1,74 +1,80 @@
-import type { PaletteKey } from "../assets/palette.js";
-import { rgbOf, rgbToAnsi256 } from "../assets/palette.js";
+import * as THREE from "three";
+import { rgbOf } from "../assets/palette.js";
 import type { Framebuffer } from "./framebuffer.js";
 
-const HALF_BLOCK = "▀";
-const RESET = "\x1b[0m";
-
-interface Cell {
-  top: PaletteKey;
-  bottom: PaletteKey;
-}
-
-function cursorTo(row1: number, col1: number): string {
-  return `\x1b[${row1};${col1}H`;
-}
-
+// Renderer de Three.js: en vez de convertir el framebuffer a bloques ANSI
+// (versión terminal), lo vuelca a un canvas 2D fuera de pantalla que se usa
+// como textura de un único plano — un solo draw call, con `NearestFilter`
+// para que el pixel art no se suavice (sección 13/14 del documento).
 export class Renderer {
-  private previous: (Cell | undefined)[];
-  private rows: number;
-  private cols: number;
-  private originRow: number;
-  private truecolor: boolean;
+  private readonly scene = new THREE.Scene();
+  private readonly camera: THREE.OrthographicCamera;
+  private readonly webgl: THREE.WebGLRenderer;
+  private readonly texture: THREE.CanvasTexture;
+  private readonly ctx: CanvasRenderingContext2D;
+  private readonly imageData: ImageData;
+  private readonly fbWidth: number;
+  private readonly fbHeight: number;
 
-  constructor(cols: number, rows: number, originRow: number, truecolor: boolean) {
-    this.cols = cols;
-    this.rows = rows;
-    this.originRow = originRow;
-    this.truecolor = truecolor;
-    this.previous = new Array(cols * rows).fill(undefined);
+  constructor(canvas: HTMLCanvasElement, fbWidth: number, fbHeight: number) {
+    this.fbWidth = fbWidth;
+    this.fbHeight = fbHeight;
+
+    this.webgl = new THREE.WebGLRenderer({ canvas, antialias: false });
+    this.webgl.setPixelRatio(1);
+
+    const buffer = document.createElement("canvas");
+    buffer.width = fbWidth;
+    buffer.height = fbHeight;
+    const ctx = buffer.getContext("2d");
+    if (!ctx) throw new Error("No se pudo crear el contexto 2D del framebuffer.");
+    this.ctx = ctx;
+    this.imageData = ctx.createImageData(fbWidth, fbHeight);
+
+    this.texture = new THREE.CanvasTexture(buffer);
+    this.texture.magFilter = THREE.NearestFilter;
+    this.texture.minFilter = THREE.NearestFilter;
+    this.texture.colorSpace = THREE.SRGBColorSpace;
+
+    const material = new THREE.MeshBasicMaterial({ map: this.texture });
+    const geometry = new THREE.PlaneGeometry(fbWidth, fbHeight);
+    this.scene.add(new THREE.Mesh(geometry, material));
+
+    this.camera = new THREE.OrthographicCamera(
+      -fbWidth / 2,
+      fbWidth / 2,
+      fbHeight / 2,
+      -fbHeight / 2,
+      0,
+      1,
+    );
+    this.camera.position.z = 1;
   }
 
-  private colorEscape(key: PaletteKey, layer: "38" | "48"): string {
-    const rgb = rgbOf(key);
-    if (this.truecolor) {
-      return `\x1b[${layer};2;${rgb.r};${rgb.g};${rgb.b}m`;
-    }
-    return `\x1b[${layer};5;${rgbToAnsi256(rgb)}m`;
+  // Reescala el canvas a un múltiplo entero del framebuffer para que cada
+  // pixel de juego ocupe la misma cantidad de pixels de pantalla.
+  resize(cssWidth: number, cssHeight: number): void {
+    const scale = Math.max(
+      1,
+      Math.floor(Math.min(cssWidth / this.fbWidth, cssHeight / this.fbHeight)),
+    );
+    this.webgl.setSize(this.fbWidth * scale, this.fbHeight * scale);
   }
 
-  // Fuerza el redibujado completo en el próximo flush (p.ej. tras un resize).
-  invalidate(): void {
-    this.previous.fill(undefined);
-  }
-
-  render(fb: Framebuffer, write: (chunk: string) => void): void {
-    let out = "";
-    let lastRow = -1;
-    let lastCol = -1;
-
-    for (let row = 0; row < this.rows; row++) {
-      const py = row * 2;
-      for (let col = 0; col < this.cols; col++) {
-        const top = fb.get(col, py);
-        const bottom = fb.get(col, py + 1);
-        const index = row * this.cols + col;
-        const prev = this.previous[index];
-        if (prev && prev.top === top && prev.bottom === bottom) continue;
-
-        this.previous[index] = { top, bottom };
-
-        if (row !== lastRow || col !== lastCol) {
-          out += cursorTo(this.originRow + row, col + 1);
-        }
-        out += this.colorEscape(top, "38") + this.colorEscape(bottom, "48") + HALF_BLOCK;
-        lastRow = row;
-        lastCol = col + 1;
+  render(fb: Framebuffer): void {
+    const data = this.imageData.data;
+    for (let y = 0; y < this.fbHeight; y++) {
+      for (let x = 0; x < this.fbWidth; x++) {
+        const { r, g, b } = rgbOf(fb.get(x, y));
+        const i = (y * this.fbWidth + x) * 4;
+        data[i] = r;
+        data[i + 1] = g;
+        data[i + 2] = b;
+        data[i + 3] = 255;
       }
     }
-
-    if (out.length > 0) {
-      write(out + RESET);
-    }
+    this.ctx.putImageData(this.imageData, 0, 0);
+    this.texture.needsUpdate = true;
+    this.webgl.render(this.scene, this.camera);
   }
 }

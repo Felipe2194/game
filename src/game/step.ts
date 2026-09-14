@@ -90,7 +90,7 @@ export function step(state: GameState, action: Action): StepResult {
     const def = enemyDefs[target.kind];
     const message = defeated ? enemyDefeatedMessage(def) : playerAttackMessage(def, damage);
 
-    if (defeated && target.kind === "lobizon") {
+    if (defeated && target.kind === "alfa") {
       const victoryState: GameState = {
         ...state,
         enemies,

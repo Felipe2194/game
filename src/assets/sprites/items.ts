@@ -3,20 +3,21 @@ import { rowsToFrame, type Sprite } from "../sprite.js";
 
 // Sprites propios de 6×6, un frame cada uno (sección 16). Tonos cálidos
 // para objetos útiles (f, n, e) — regla de estilo de la sección 10.
+// Retemados sobre la referencia de sheet.png ("GANK — El Monte Oscuro").
 export const itemSprites: Record<ItemKind, Sprite> = {
-  mate: {
-    frames: [rowsToFrame(["...n..", ".llll.", ".llll.", ".llll.", "..ll..", "......"])],
+  pocion: {
+    frames: [rowsToFrame(["..l...", "..d...", ".ddd..", ".dmd..", ".ddd..", "......"])],
   },
-  vela: {
-    frames: [rowsToFrame(["..e...", "..f...", "..f...", "..f...", ".fff..", "......"])],
+  antorcha: {
+    frames: [rowsToFrame(["..e...", "..f...", "..f...", "..l...", "..l...", "......"])],
   },
-  alfajor: {
-    frames: [rowsToFrame(["......", ".llll.", "lnnnnl", "lnnnnl", ".llll.", "......"])],
+  racion: {
+    frames: [rowsToFrame(["...l..", "..ll..", ".ndd..", "ndddn.", ".nnn..", "......"])],
   },
-  facon: {
+  daga: {
     frames: [rowsToFrame(["...o..", "..oo..", ".oo...", "ll....", "l.....", "......"])],
   },
-  poncho: {
+  capa: {
     frames: [rowsToFrame(["e....e", ".nnnn.", "nnnnnn", "n.nn.n", "nnnnnn", ".nnnn."])],
   },
   moneda: {

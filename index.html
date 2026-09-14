@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bosque Oscuro</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background: #0e0f1a;
+        height: 100%;
+      }
+      #app {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: "Courier New", ui-monospace, monospace;
+        color: #f4f4f4;
+      }
+      #app canvas {
+        image-rendering: pixelated;
+        display: block;
+      }
+      #hud {
+        position: absolute;
+        top: 10px;
+        left: 8px;
+        right: 8px;
+        text-align: center;
+        white-space: pre;
+        overflow-x: auto;
+        font-size: 13px;
+        letter-spacing: 0.5px;
+      }
+      #log {
+        position: absolute;
+        bottom: 10px;
+        left: 8px;
+        right: 8px;
+        text-align: center;
+        font-size: 12px;
+        line-height: 1.4;
+        color: #c9a26b;
+      }
+      #overlay {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(14, 15, 26, 0.92);
+        white-space: pre-wrap;
+        text-align: center;
+        font-size: 14px;
+        line-height: 1.7;
+        padding: 16px;
+      }
+      #overlay[hidden] {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <div id="hud"></div>
+      <div id="log"></div>
+      <div id="overlay" hidden></div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

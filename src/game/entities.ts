@@ -20,7 +20,7 @@ export interface Enemy {
   // el factor de velocidad cada turno del jugador y el enemigo actúa una
   // vez por cada crédito entero acumulado.
   actionCredit: number;
-  // Ciclo de 3 turnos del lobizón (perseguir/agazapar/saltar). Sin uso
+  // Ciclo de 3 turnos del Alfa (perseguir/agazapar/saltar). Sin uso
   // para el resto de los enemigos.
   phase: number;
 }

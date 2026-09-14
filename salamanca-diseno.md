@@ -4,7 +4,7 @@
 
 ## 1. Pitch
 
-Un carpincho baja a la Salamanca, la cueva del folklore donde se aprenden artes prohibidas. Son 10 pisos generados al azar: ratas y murciélagos cerca de la superficie, apariciones del monte más abajo y un lobizón esperando en el fondo. Si morís, se pierde todo y arrancás de nuevo. Una partida completa dura entre 5 y 10 minutos.
+Un cazador errante entra al Monte Oscuro, un bosque que perdió la luz. Son 10 pisos generados al azar: escarabajos y cuervos cerca de la entrada, espíritus corrompidos y lobos más abajo, y el Alfa esperando en el fondo. Si morís, se pierde todo y arrancás de nuevo. Una partida completa dura entre 5 y 10 minutos.
 
 ## 2. Principios de diseño
 
@@ -59,14 +59,16 @@ La defensa baja la probabilidad de que te peguen en lugar de restar daño. Así 
 
 ## 6. Enemigos
 
+Retemado sobre la referencia de arte "GANK — El Monte Oscuro" (`sheet.png`, ver sección 10).
+
 | Enemigo | Pisos | Vida | Daño | Precisión | Velocidad | Comportamiento |
 |---|---|---|---|---|---|---|
-| Rata | 1–3 | 1 | 1 | 60% | Normal | Persigue si te ve |
-| Murciélago | 1–4 | 1 | 1 | 50% | Rápida | Movimiento errático la mitad de las veces |
-| Esqueleto | 3–7 | 3 | 1 | 75% | Normal | Persigue si te ve |
-| Familiar (perro negro) | 5–9 | 4 | 2 | 70% | Normal | Te rastrea por olfato hasta 12 casillas, aunque no te vea |
-| Luz mala | 6–9 | 2 | 1 | 90% | Lenta | Atraviesa paredes y se ve aunque haya muros de por medio |
-| **Lobizón (jefe)** | 10 | 14 | 2 | 80% | Normal | Cada 3 turnos salta hasta 3 casillas en línea recta; el turno anterior se agazapa y lo avisa en el log |
+| Escarabajo de río | 1–3 | 1 | 1 | 60% | Normal | Persigue si te ve |
+| Cuervo sombrío | 1–4 | 1 | 1 | 50% | Rápida | Movimiento errático la mitad de las veces |
+| Espíritu del bosque | 3–7 | 3 | 1 | 75% | Normal | Persigue si te ve |
+| Lobo acechador | 5–9 | 4 | 2 | 70% | Normal | Te rastrea por olfato hasta 12 casillas, aunque no te vea |
+| Fuego fatuo | 6–9 | 2 | 1 | 90% | Lenta | Atraviesa paredes y se ve aunque haya muros de por medio |
+| **El Alfa / Gran Draco (jefe)** | 10 | 14 | 2 | 80% | Normal | Cada 3 turnos salta hasta 3 casillas en línea recta; el turno anterior se agazapa y lo avisa en el log |
 
 Cantidad por piso: 2 + número de piso, con un máximo de 9. La sala inicial nunca tiene enemigos.
 
@@ -74,11 +76,11 @@ Cantidad por piso: 2 + número de piso, con un máximo de 9. La sala inicial nun
 
 | Objeto | Tipo | Efecto | Aparición |
 |---|---|---|---|
-| Mate | Cinturón | Cura 2 de vida | 1–2 por piso |
-| Vela | Cinturón | Visión 5 → 8 hasta bajar de piso | 30% por piso |
-| Alfajor | Inmediato | +1 vida máxima y cura 1 | 1 cada 3 pisos |
-| Facón | Equipo | +1 ataque | Garantizado entre pisos 2 y 4 |
-| Poncho | Equipo | +1 defensa | Garantizado entre pisos 3 y 6 |
+| Poción de vida | Cinturón | Cura 2 de vida | 1–2 por piso |
+| Antorcha | Cinturón | Visión 5 → 8 hasta bajar de piso | 30% por piso |
+| Ración de carne | Inmediato | +1 vida máxima y cura 1 | 1 cada 3 pisos |
+| Daga de caza | Equipo | +1 ataque | Garantizado entre pisos 2 y 4 |
+| Capa de cuero | Equipo | +1 defensa | Garantizado entre pisos 3 y 6 |
 | Monedas | Inmediato | Suman al puntaje | 3–5 por piso |
 
 Los objetos se agarran solos al pisarlos. El cinturón tiene 3 espacios; si está lleno, el objeto queda en el suelo.
@@ -166,11 +168,13 @@ No se dibujan versiones aparte: se aplica una tabla de reemplazo sobre el sprite
 | Grupo | Sprites | Frames |
 |---|---|---|
 | Tiles | Pared, piso, escalera, sala del jefe (piso decorado) | 1 |
-| Jugador | Carpincho (se espeja al ir a la izquierda) | 2 (respira) |
-| Enemigos | Rata, murciélago, esqueleto, familiar, luz mala | 2 |
-| Jefe | Lobizón normal, agazapado | 2 + 1 |
-| Objetos | Mate, vela, alfajor, facón, poncho, moneda | 1 |
+| Jugador | Cazador errante (se espeja al ir a la izquierda) | 2 (respira, llama parpadea) |
+| Enemigos | Escarabajo de río, cuervo sombrío, espíritu del bosque, lobo acechador, fuego fatuo | 2 |
+| Jefe | El Alfa / Gran Draco normal, agazapado | 2 + 1 |
+| Objetos | Poción de vida, antorcha, ración de carne, daga de caza, capa de cuero, moneda | 1 |
 | Efectos | Golpe (destello), muerte (humo) | 1–2 |
+
+> **Referencia de arte "GANK — El Monte Oscuro" (`sheet.png`).** Hoja de diseño ilustrada (no pixel art 6×6) que definió la nueva dirección visual. Los sprites de 6×6 de `src/assets/sprites/` ya están retemados a partir de esta referencia (`hero.ts`, `enemies.ts`, `alfa.ts`, `items.ts`), reutilizando la paleta de 16 colores existente — ver sección 6 y 7 para la tabla final de enemigos y objetos.
 
 ### Reglas de estilo
 
@@ -192,8 +196,8 @@ El renderer dibuja inmediatamente después de cada tecla y, además, cada ~250 m
 | Jugando | Mapa, HUD, log |
 | Mapa | Superposición del piso completo a 2×2 px por casilla (56×32 px), solo lo explorado |
 | Ayuda | Controles y leyenda de sprites |
-| Game over | Causa ("Te mató un esqueleto en el piso 4"), puntaje, récord, tecla para reintentar |
-| Victoria | Lobizón derrotado, estadísticas de la partida |
+| Game over | Causa ("Te mató un espíritu del bosque en el piso 4"), puntaje, récord, tecla para reintentar |
+| Victoria | El Alfa derrotado, estadísticas de la partida |
 
 ## 12. Puntaje y guardado
 
@@ -204,7 +208,7 @@ El renderer dibuja inmediatamente después de cada tecla y, además, cada ~250 m
 | Por enemigo derrotado | 5 |
 | Victoria | 1000 |
 
-- Archivo: `~/.salamanca/save.json`.
+- Almacenamiento: `localStorage` del navegador (clave `bosque-oscuro:save`), por origen — no se comparte entre dispositivos ni navegadores.
 - Contenido: las 5 mejores partidas con fecha, puntaje, piso, causa de muerte y semilla.
 - Si falla la lectura o escritura, el juego sigue sin récords y no crashea.
 
@@ -213,20 +217,23 @@ El renderer dibuja inmediatamente después de cada tecla y, además, cada ~250 m
 | Pieza | Elección |
 |---|---|
 | Lenguaje | TypeScript |
-| Runtime | Node ≥ 18, sin dependencias en runtime |
-| Build | tsup → `dist/cli.js` con shebang |
-| Desarrollo | tsx |
+| Build / dev server | Vite |
+| Renderizado | Three.js (WebGL), `OrthographicCamera` |
+| Texturas | `THREE.NearestFilter` en mag/min para conservar el pixel art sin suavizado |
+| Input | Eventos nativos del navegador (`window.addEventListener('keydown')`) |
 | Tests | Vitest |
-| Distribución | `npx salamanca` (nombre a verificar en npm) + binarios con `bun build --compile` en GitHub Releases |
+| Distribución | Despliegue automático en Vercel (sitio estático generado por `vite build`) |
+
+> Se abandona el runtime exclusivo de Node (CLI), `tsup`/`dist/cli.js` y la distribución por `npx` o binarios compilados. `tsx` se conserva solo para scripts internos (`tools/simulate.ts`).
 
 ## 14. Arquitectura
 
-La idea central es que la lógica del juego es pura y no sabe que existe una terminal:
+La idea central se mantiene: la lógica del juego es pura y no sabe que existe un canvas ni WebGL.
 
 ```
-tecla ─► Input ─► Acción ─► step(estado, acción) ─► { estado nuevo, eventos }
-                                                         │
-                          Escena.draw(estado) ─► Framebuffer 80×46 ─► Renderer (diff) ─► ANSI
+tecla ─► Input (DOM) ─► Acción ─► step(estado, acción) ─► { estado nuevo, eventos }
+                                                              │
+                          Escena.draw(estado) ─► Framebuffer (grilla de paleta) ─► Renderer Three.js (escena WebGL)
 ```
 
 Esto permite tres cosas:
@@ -235,28 +242,30 @@ Esto permite tres cosas:
 2. **Simulador.** Un bot juega miles de partidas sin pantalla para medir en qué piso muere la gente y ajustar el balance con números.
 3. **Repeticiones y desafío diario.** Semilla más lista de acciones reproduce la partida exacta.
 
-### Diferencias con un juego en tiempo real
+El framebuffer (grilla de índices de paleta) sigue siendo la interfaz entre el juego y la presentación. En la implementación actual el renderer vuelca esa grilla entera a un canvas 2D fuera de pantalla usado como textura (`THREE.CanvasTexture`, `NearestFilter`) de un único plano en la escena — un solo draw call, sin diff, porque a 78×42 px volcarla entera es barato. El HUD y el log ya no son parte del framebuffer: son texto en el DOM superpuesto al canvas (`#hud`, `#log`, `#overlay` en `index.html`), que sí solo se actualiza cuando cambia.
 
-- No hay loop a 30 fps: el render se dispara por evento, más un temporizador de animación.
-- Se escucha `stdout.on('resize')` para revalidar el tamaño y avisar si la terminal queda chica.
+### Diferencias con la versión de terminal
+
+- No hay loop a 30 fps ni `requestAnimationFrame`: igual que en la terminal, el render se dispara por evento (tecla), más el temporizador de animación (~250 ms) del `Scheduler` para los sprites de 2 frames — ambos llaman a `renderer.render()` directamente.
+- El resize se escucha vía `window.addEventListener('resize')` en vez de `stdout.on('resize')`, y reescala el canvas a un múltiplo entero del framebuffer en lugar de validar columnas/filas de terminal.
+- La atenuación de casillas recordadas y el field of view (Bresenham) son exactamente la misma lógica matemática; solo cambia el paso final de color→pixel (canvas 2D en vez de ANSI truecolor/256).
 
 ## 15. Estructura de carpetas
 
 ```
 salamanca/
-├── package.json              # "bin": { "salamanca": "dist/cli.js" }
+├── package.json
+├── vite.config.ts
+├── index.html                # punto de entrada de Vite, monta <div id="app">
 ├── tsconfig.json
-├── tsup.config.ts
 ├── README.md
 ├── src/
-│   ├── cli.ts                # chequeos de terminal, arranque, restauración
+│   ├── main.ts                # arranque: framebuffer + renderer + scheduler + input, overlay DOM (#hud/#log/#overlay)
 │   ├── engine/
-│   │   ├── terminal.ts       # pantalla alternativa, cursor, tamaño, color, chequeo de ancho
-│   │   ├── input.ts          # modo raw, teclas → acciones
-│   │   ├── framebuffer.ts    # grilla de índices de paleta
-│   │   ├── renderer.ts       # medio bloque + diff + escritura única
-│   │   ├── scheduler.ts      # render por evento + tick de animación
-│   │   └── text.ts           # HUD, log y textos centrados
+│   │   ├── input.ts           # listeners del DOM (`keydown`), teclas → acciones
+│   │   ├── framebuffer.ts     # grilla de índices de paleta (igual que antes)
+│   │   ├── renderer.ts        # Three.js: framebuffer → canvas 2D → CanvasTexture (NearestFilter) sobre un plano
+│   │   └── scheduler.ts       # render por evento + tick de animación
 │   ├── game/
 │   │   ├── config.ts         # constantes base (vida, visión, tamaños)
 │   │   ├── rng.ts            # mulberry32 con semilla
@@ -288,10 +297,10 @@ salamanca/
 │   │   ├── hud.ts
 │   │   └── log.ts
 │   ├── assets/
-│   │   ├── palette.ts        # 16 colores, tabla de atenuación, mapeo a 256
-│   │   └── sprites/          # tiles.ts, hero.ts, enemies.ts, items.ts, fx.ts
+│   │   ├── palette.ts        # 16 colores, tabla de atenuación
+│   │   └── sprites/          # hero.ts, enemies.ts, alfa.ts, items.ts (tiles.ts y fx.ts: pendientes)
 │   └── storage/
-│       └── save.ts
+│       └── save.ts           # récords en localStorage (sección 12)
 ├── tools/
 │   ├── png-to-sprite.ts      # PNG del modo diseño → sprite en texto
 │   ├── preview-sprites.ts    # muestra todos los sprites en la terminal
@@ -312,8 +321,8 @@ salamanca/
 // src/assets/sprites/hero.ts
 export const hero = {
   frames: [
-    ["....l.", "..kkkk", "kkkkak", "kkkkkl", "kkkkk.", ".l.l.."],
-    ["....l.", "..kkkk", "kkkkak", "kkkkkl", "kkkkk.", "l...l."],
+    ["..ll.e", ".llllf", "llllll", ".llll.", ".l..l.", "......"],
+    ["..ll.f", ".lllle", "llllll", ".llll.", "l...l.", "......"],
   ],
 };
 ```
@@ -323,8 +332,8 @@ export const hero = {
 ```ts
 // src/content/enemies.ts
 export const enemies = {
-  esqueleto: {
-    nombre: "un esqueleto",
+  espiritu: {
+    nombre: "un espíritu del bosque",
     verbo: "te golpeó",
     pisos: [3, 7],
     vida: 3,
@@ -332,21 +341,21 @@ export const enemies = {
     precision: 0.75,
     velocidad: "normal",
     comportamiento: "perseguir",
-    sprite: "esqueleto",
+    sprite: "espiritu",
   },
 } as const;
 ```
 
-## 17. Compatibilidad de terminal
+## 17. Compatibilidad de navegador
 
 | Riesgo | Mitigación |
 |---|---|
-| Terminal menor a 80×24 | Pantalla de aviso hasta que se agrande |
-| Sin truecolor | Detectar `COLORTERM`; si no hay truecolor, usar el mapeo a 256 colores |
-| `▀` y `♥` dibujados con ancho doble (configuraciones CJK) | Al arrancar, escribir `▀`, pedir la posición del cursor (`ESC[6n`) y, si avanzó 2 columnas, mostrar aviso |
-| Cierre abrupto | Restaurar cursor, pantalla y modo raw en `exit`, `SIGINT`, `SIGTERM` y excepciones no capturadas |
+| Sin soporte WebGL | Three.js tira `WebGLRenderer` si falla; pendiente: pantalla de aviso explícita en vez de que la página quede en blanco |
+| Ventana muy angosta (celular) | `Renderer.resize()` reescala el canvas a un múltiplo entero del framebuffer, con mínimo 1×; el HUD (`white-space: pre`) puede necesitar scroll horizontal en pantallas muy chicas — pendiente de ajuste fino |
+| `localStorage` bloqueado o en modo privado | `storage/save.ts` atrapa la excepción; el juego sigue sin récords (sección 12) |
+| Teclas del juego interfieren con atajos del navegador | `engine/input.ts` llama `preventDefault()` solo en las teclas que reconoce (flechas, WASD, etc.) |
 
-Probar en Windows Terminal, terminal de macOS, iTerm2, GNOME Terminal y la terminal integrada de VS Code.
+Probar en Chrome, Firefox, Safari y Edge de escritorio; el soporte táctil/móvil todavía no está implementado (el juego es solo de teclado).
 
 ## 18. Brief para el modo diseño
 

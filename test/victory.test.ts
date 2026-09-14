@@ -41,8 +41,8 @@ function makeState(overrides: Partial<GameState> = {}): GameState {
     enemies: [],
     items: [],
     belt: createEmptyBelt(),
-    faconFloor: 2,
-    ponchoFloor: 3,
+    dagaFloor: 2,
+    capaFloor: 3,
     visible: new Set(),
     seen: new Set(),
     messages: [],
@@ -56,9 +56,9 @@ function makeState(overrides: Partial<GameState> = {}): GameState {
   };
 }
 
-describe("lobizón y victoria", () => {
-  it("derrotar al lobizón dispara la victoria y suma 1000 puntos", () => {
-    const boss = createEnemy(0, "lobizon", 6, 5); // adyacente, ataque 20 lo mata de un golpe
+describe("Alfa y victoria", () => {
+  it("derrotar al Alfa dispara la victoria y suma 1000 puntos", () => {
+    const boss = createEnemy(0, "alfa", 6, 5); // adyacente, ataque 20 lo mata de un golpe
     const state = makeState({ enemies: [boss] });
 
     const result = step(state, { type: "move", dx: 1, dy: 0 });
@@ -68,8 +68,8 @@ describe("lobizón y victoria", () => {
     expect(result.events.some((e) => e.type === "victory")).toBe(true);
   });
 
-  it("el lobizón sigue el ciclo persigue/agazapa/salta cada 3 turnos", () => {
-    const boss = createEnemy(0, "lobizon", 2, 5); // lejos, en línea recta
+  it("el Alfa sigue el ciclo persigue/agazapa/salta cada 3 turnos", () => {
+    const boss = createEnemy(0, "alfa", 2, 5); // lejos, en línea recta
     let state = makeState({ enemies: [boss], player: makePlayer({ x: 9, y: 5 }) });
 
     const phases: number[] = [];

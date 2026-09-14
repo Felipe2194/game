@@ -1,9 +1,9 @@
 import { enemiesForFloor, enemyCountForFloor } from "../../content/enemies.js";
 import {
-  ALFAJOR_EVERY_N_FLOORS,
+  ANTORCHA_SPAWN_CHANCE,
   COINS_PER_FLOOR,
-  MATE_PER_FLOOR,
-  VELA_SPAWN_CHANCE,
+  POCION_PER_FLOOR,
+  RACION_EVERY_N_FLOORS,
 } from "../../content/items.js";
 import type { ItemKind } from "../../content/items.js";
 import { createEnemy } from "../entities.js";
@@ -33,8 +33,8 @@ function candidateTiles(dungeon: Dungeon): Point[] {
 }
 
 export interface PopulateOptions {
-  faconFloor: number;
-  ponchoFloor: number;
+  dagaFloor: number;
+  capaFloor: number;
 }
 
 export interface PopulateResult {
@@ -44,7 +44,7 @@ export interface PopulateResult {
 }
 
 // Enemigos y objetos según el piso (secciones 6 y 7). La sala inicial nunca
-// tiene enemigos ni objetos. El piso del jefe solo tiene al lobizón, lejos
+// tiene enemigos ni objetos. El piso del jefe solo tiene al Alfa, lejos
 // de la entrada.
 export function populateFloor(
   dungeon: Dungeon,
@@ -55,7 +55,7 @@ export function populateFloor(
   if (dungeon.isBossFloor) {
     const room = dungeon.rooms[0];
     const spot = room ? roomCenter(room) : dungeon.start;
-    return { enemies: [createEnemy(0, "lobizon", spot.x, spot.y)], items: [], rng };
+    return { enemies: [createEnemy(0, "alfa", spot.x, spot.y)], items: [], rng };
   }
 
   const [shuffled, afterShuffle] = shuffle(rng, candidateTiles(dungeon));
@@ -76,17 +76,17 @@ export function populateFloor(
 
   const itemKinds: ItemKind[] = [];
 
-  const [mateCount, afterMate] = nextInt(current, MATE_PER_FLOOR[0], MATE_PER_FLOOR[1]);
-  current = afterMate;
-  for (let i = 0; i < mateCount; i++) itemKinds.push("mate");
+  const [pocionCount, afterPocion] = nextInt(current, POCION_PER_FLOOR[0], POCION_PER_FLOOR[1]);
+  current = afterPocion;
+  for (let i = 0; i < pocionCount; i++) itemKinds.push("pocion");
 
-  const [hasVela, afterVela] = nextBool(current, VELA_SPAWN_CHANCE);
-  current = afterVela;
-  if (hasVela) itemKinds.push("vela");
+  const [hasAntorcha, afterAntorcha] = nextBool(current, ANTORCHA_SPAWN_CHANCE);
+  current = afterAntorcha;
+  if (hasAntorcha) itemKinds.push("antorcha");
 
-  if (floor % ALFAJOR_EVERY_N_FLOORS === 0) itemKinds.push("alfajor");
-  if (floor === options.faconFloor) itemKinds.push("facon");
-  if (floor === options.ponchoFloor) itemKinds.push("poncho");
+  if (floor % RACION_EVERY_N_FLOORS === 0) itemKinds.push("racion");
+  if (floor === options.dagaFloor) itemKinds.push("daga");
+  if (floor === options.capaFloor) itemKinds.push("capa");
 
   const [coinCount, afterCoins] = nextInt(current, COINS_PER_FLOOR[0], COINS_PER_FLOOR[1]);
   current = afterCoins;

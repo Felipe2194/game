@@ -7,7 +7,7 @@ function hearts(player: Player): string {
   return full + empty;
 }
 
-// Referencia de sección 10: `piso 3  ♥♥♥♥♡♡  atq 2 def 1  [1]mate [2]vela [3]·            oro 12`
+// Referencia de sección 10: `piso 3  ♥♥♥♥♡♡  atq 2 def 1  [1]pocion [2]antorcha [3]·            oro 12`
 export function buildHud(
   floor: number,
   player: Player,

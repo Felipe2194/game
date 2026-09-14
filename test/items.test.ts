@@ -38,8 +38,8 @@ function makeState(overrides: Partial<GameState> = {}): GameState {
     enemies: [],
     items: [],
     belt: createEmptyBelt(),
-    faconFloor: 2,
-    ponchoFloor: 3,
+    dagaFloor: 2,
+    capaFloor: 3,
     visible: new Set(),
     seen: new Set(),
     messages: [],
@@ -54,8 +54,8 @@ function makeState(overrides: Partial<GameState> = {}): GameState {
 }
 
 describe("items", () => {
-  it("un mate en el cinturón cura al usarlo y desaparece del cinturón", () => {
-    let state = makeState({ belt: ["mate", undefined, undefined] });
+  it("una poción en el cinturón cura al usarla y desaparece del cinturón", () => {
+    let state = makeState({ belt: ["pocion", undefined, undefined] });
     const result = useBeltSlot(state, 0);
     expect(result.consumedTurn).toBe(true);
     expect(result.state.player.hp).toBe(6); // 4 + 2, sin pasarse del máximo
@@ -68,22 +68,22 @@ describe("items", () => {
     expect(result.consumedTurn).toBe(false);
   });
 
-  it("una vela sube la visión hasta bajar de piso", () => {
-    let state = makeState({ belt: [undefined, "vela", undefined] });
+  it("una antorcha sube la visión hasta bajar de piso", () => {
+    let state = makeState({ belt: [undefined, "antorcha", undefined] });
     const result = useBeltSlot(state, 1);
     expect(result.state.player.vision).toBe(8);
   });
 
-  it("si el cinturón está lleno, el mate queda en el suelo", () => {
-    const item: ItemPickup = { id: 0, kind: "mate", x: 2, y: 2 };
-    const state = makeState({ belt: ["mate", "vela", "mate"], items: [item] });
+  it("si el cinturón está lleno, la poción queda en el suelo", () => {
+    const item: ItemPickup = { id: 0, kind: "pocion", x: 2, y: 2 };
+    const state = makeState({ belt: ["pocion", "antorcha", "pocion"], items: [item] });
     const result = pickUpItem(state, item);
     expect(result.items).toHaveLength(1); // sigue en el suelo
     expect(result.belt).toEqual(state.belt);
   });
 
-  it("un alfajor suma vida máxima y cura", () => {
-    const item: ItemPickup = { id: 0, kind: "alfajor", x: 2, y: 2 };
+  it("una ración de carne suma vida máxima y cura", () => {
+    const item: ItemPickup = { id: 0, kind: "racion", x: 2, y: 2 };
     const state = makeState({ items: [item] });
     const result = pickUpItem(state, item);
     expect(result.player.maxHp).toBe(7);
@@ -91,8 +91,8 @@ describe("items", () => {
     expect(result.items).toHaveLength(0);
   });
 
-  it("un facón equipado suma ataque permanentemente", () => {
-    const item: ItemPickup = { id: 0, kind: "facon", x: 2, y: 2 };
+  it("una daga equipada suma ataque permanentemente", () => {
+    const item: ItemPickup = { id: 0, kind: "daga", x: 2, y: 2 };
     const result = pickUpItem(makeState({ items: [item] }), item);
     expect(result.player.attack).toBe(2);
   });

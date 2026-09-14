@@ -1,6 +1,6 @@
 import { enemies as enemyDefs, speedFactor } from "../content/enemies.js";
 import { enemyHitMessage, enemyMissedMessage } from "../content/messages.js";
-import { decideEnemyMove, decideGhostLightMove, decideWerewolfJump } from "./ai/behaviors.js";
+import { decideAlfaJump, decideEnemyMove, decideGhostLightMove } from "./ai/behaviors.js";
 import { computeDistanceMap, stepTowards } from "./ai/distance-map.js";
 import { resolveEnemyAttack } from "./combat.js";
 import { isWalkable, tileIndex, type Point } from "./dungeon/types.js";
@@ -14,7 +14,7 @@ function isAdjacent(a: Point, b: Point): boolean {
 }
 
 function canOccupy(state: GameState, enemies: Enemy[], kind: string, pos: Point, selfId: number): boolean {
-  if (kind !== "luz-mala" && !isWalkable(state.dungeon, pos.x, pos.y)) return false;
+  if (kind !== "fuego-fatuo" && !isWalkable(state.dungeon, pos.x, pos.y)) return false;
   return !enemies.some((e) => e.id !== selfId && e.hp > 0 && e.x === pos.x && e.y === pos.y);
 }
 
@@ -55,19 +55,19 @@ export function resolveEnemyTurns(state: GameState): { state: GameState; events:
       }
 
       let nextPos: Point | null;
-      if (def.kind === "luz-mala") {
+      if (def.kind === "fuego-fatuo") {
         const candidate = decideGhostLightMove(enemy, state.player);
         nextPos = candidate.x === enemy.x && candidate.y === enemy.y ? null : candidate;
-      } else if (def.kind === "lobizon") {
+      } else if (def.kind === "alfa") {
         // Ciclo de 3 turnos: persigue, se agazapa (avisa), salta.
         const phase = enemy.phase % 3;
         if (phase === 0) {
           nextPos = stepTowards(state.dungeon, distanceMap, enemy);
         } else if (phase === 1) {
-          messages.push("El lobizón se agazapa, va a saltar.");
+          messages.push("El Alfa se agazapa, va a saltar.");
           nextPos = null;
         } else {
-          nextPos = decideWerewolfJump(state.dungeon, enemy, state.player);
+          nextPos = decideAlfaJump(state.dungeon, enemy, state.player);
         }
         enemy.phase = phase + 1;
       } else {

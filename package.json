@@ -1,8 +1,9 @@
 {
   "name": "salamanca",
-  "version": "0.1.0",
-  "description": "Roguelike por turnos en pixel art para la terminal",
+  "version": "0.2.0",
+  "description": "Roguelike por turnos en pixel art, renderizado con Three.js",
   "type": "module",
+  "private": true,
   "license": "MIT",
   "author": "Felipe Giovanardi",
   "repository": {
@@ -15,33 +16,29 @@
   },
   "keywords": [
     "roguelike",
-    "terminal",
-    "ascii",
-    "cli-game",
-    "pixel-art"
+    "pixel-art",
+    "threejs",
+    "webgl",
+    "vite"
   ],
-  "bin": {
-    "salamanca": "dist/cli.js"
-  },
-  "files": [
-    "dist"
-  ],
-  "engines": {
-    "node": ">=18"
-  },
   "scripts": {
-    "dev": "tsx src/cli.ts",
-    "build": "tsup",
-    "start": "node dist/cli.js",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "simulate": "tsx tools/simulate.ts"
   },
+  "dependencies": {
+    "three": "^0.171.0"
+  },
   "devDependencies": {
     "@types/node": "^22.10.0",
-    "tsup": "^8.3.5",
+    "@types/three": "^0.171.0",
+    "jsdom": "^25.0.1",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
+    "vite": "^6.0.7",
     "vitest": "^2.1.8"
   }
 }

@@ -1,7 +1,3 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { homedir } from "node:os";
-import { join } from "node:path";
-
 export interface SaveEntry {
   date: string;
   score: number;
@@ -15,26 +11,19 @@ export interface SaveData {
 }
 
 const MAX_ENTRIES = 5;
-
-// homedir() se resuelve en cada llamada (no al importar el módulo) para
-// que siempre refleje el usuario/entorno actual.
-function saveDir(): string {
-  return join(homedir(), ".salamanca");
-}
-
-function savePath(): string {
-  return join(saveDir(), "save.json");
-}
+const STORAGE_KEY = "bosque-oscuro:save";
 
 function isSaveData(value: unknown): value is SaveData {
   return typeof value === "object" && value !== null && Array.isArray((value as SaveData).top);
 }
 
-// Si falla la lectura o escritura, el juego sigue sin récords y no
-// crashea (sección 12 del documento de diseño).
+// Persistencia en localStorage (versión web). Si falla la lectura o
+// escritura (localStorage bloqueado, modo privado, etc.), el juego sigue
+// sin récords y no crashea (sección 12 del documento de diseño).
 export function loadSave(): SaveData {
   try {
-    const raw = readFileSync(savePath(), "utf8");
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return { top: [] };
     const parsed: unknown = JSON.parse(raw);
     return isSaveData(parsed) ? parsed : { top: [] };
   } catch {
@@ -48,9 +37,7 @@ export function recordRun(entry: SaveEntry): SaveData {
   const data: SaveData = { top };
 
   try {
-    const dir = saveDir();
-    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-    writeFileSync(savePath(), JSON.stringify(data, null, 2), "utf8");
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   } catch {
     // Sin récords persistidos, pero la partida sigue.
   }

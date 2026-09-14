@@ -1,4 +1,4 @@
-export type EnemyKind = "rata" | "murcielago" | "esqueleto" | "familiar" | "luz-mala" | "lobizon";
+export type EnemyKind = "escarabajo" | "cuervo" | "espiritu" | "lobo" | "fuego-fatuo" | "alfa";
 
 export type Speed = "lenta" | "normal" | "rapida";
 export type Behavior = "perseguir" | "erratico" | "olfato" | "atraviesa" | "saltar";
@@ -16,12 +16,13 @@ export interface EnemyDef {
   esJefe?: boolean;
 }
 
-// Tabla de enemigos — sección 6 del documento de diseño.
+// Tabla de enemigos — sección 6 del documento de diseño, retemada sobre
+// "GANK — El Monte Oscuro" (ver referencia sheet.png en la sección 10).
 export const enemies: Record<EnemyKind, EnemyDef> = {
-  rata: {
-    kind: "rata",
-    nombre: "una rata",
-    verbo: "te mordió",
+  escarabajo: {
+    kind: "escarabajo",
+    nombre: "un escarabajo de río",
+    verbo: "te picó",
     pisos: [1, 3],
     vida: 1,
     dano: 1,
@@ -29,10 +30,10 @@ export const enemies: Record<EnemyKind, EnemyDef> = {
     velocidad: "normal",
     comportamiento: "perseguir",
   },
-  murcielago: {
-    kind: "murcielago",
-    nombre: "un murciélago",
-    verbo: "te arañó",
+  cuervo: {
+    kind: "cuervo",
+    nombre: "un cuervo sombrío",
+    verbo: "te picoteó",
     pisos: [1, 4],
     vida: 1,
     dano: 1,
@@ -40,9 +41,9 @@ export const enemies: Record<EnemyKind, EnemyDef> = {
     velocidad: "rapida",
     comportamiento: "erratico",
   },
-  esqueleto: {
-    kind: "esqueleto",
-    nombre: "un esqueleto",
+  espiritu: {
+    kind: "espiritu",
+    nombre: "un espíritu del bosque",
     verbo: "te golpeó",
     pisos: [3, 7],
     vida: 3,
@@ -51,9 +52,9 @@ export const enemies: Record<EnemyKind, EnemyDef> = {
     velocidad: "normal",
     comportamiento: "perseguir",
   },
-  familiar: {
-    kind: "familiar",
-    nombre: "un familiar",
+  lobo: {
+    kind: "lobo",
+    nombre: "un lobo acechador",
     verbo: "te mordió",
     pisos: [5, 9],
     vida: 4,
@@ -62,9 +63,9 @@ export const enemies: Record<EnemyKind, EnemyDef> = {
     velocidad: "normal",
     comportamiento: "olfato",
   },
-  "luz-mala": {
-    kind: "luz-mala",
-    nombre: "una luz mala",
+  "fuego-fatuo": {
+    kind: "fuego-fatuo",
+    nombre: "un fuego fatuo",
     verbo: "te quemó",
     pisos: [6, 9],
     vida: 2,
@@ -73,9 +74,9 @@ export const enemies: Record<EnemyKind, EnemyDef> = {
     velocidad: "lenta",
     comportamiento: "atraviesa",
   },
-  lobizon: {
-    kind: "lobizon",
-    nombre: "el lobizón",
+  alfa: {
+    kind: "alfa",
+    nombre: "el Alfa",
     verbo: "te destrozó",
     pisos: [10, 10],
     vida: 14,

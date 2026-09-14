@@ -5,7 +5,7 @@ import { distanceAt, stepTowards } from "./distance-map.js";
 import type { Rng } from "../rng.js";
 import { nextBool, pick } from "../rng.js";
 
-const FAMILIAR_SMELL_RANGE = 12;
+const LOBO_SMELL_RANGE = 12;
 
 function chaseIfVisible(
   dungeon: Dungeon,
@@ -30,9 +30,9 @@ function randomAdjacent(dungeon: Dungeon, rng: Rng, from: Point): [Point | null,
 
 // Devuelve la casilla a la que el enemigo intenta moverse (o null si se
 // queda quieto) más el rng consumido. Sección 6/9 del documento. No cubre
-// "luz-mala" (ver decideGhostLightMove) ni "lobizon" (salto, F5).
+// "fuego-fatuo" (ver decideGhostLightMove) ni "alfa" (salto, F5).
 export function decideEnemyMove(
-  kind: Exclude<EnemyKind, "luz-mala" | "lobizon">,
+  kind: Exclude<EnemyKind, "fuego-fatuo" | "alfa">,
   dungeon: Dungeon,
   distanceMap: number[],
   enemy: Point,
@@ -40,19 +40,19 @@ export function decideEnemyMove(
   rng: Rng,
 ): [Point | null, Rng] {
   switch (kind) {
-    case "rata":
-    case "esqueleto":
+    case "escarabajo":
+    case "espiritu":
       return [chaseIfVisible(dungeon, distanceMap, enemy, playerCanSeeEnemy), rng];
 
-    case "murcielago": {
+    case "cuervo": {
       const [erratic, afterCoin] = nextBool(rng, 0.5);
       if (erratic) return randomAdjacent(dungeon, afterCoin, enemy);
       return [chaseIfVisible(dungeon, distanceMap, enemy, playerCanSeeEnemy), afterCoin];
     }
 
-    case "familiar": {
+    case "lobo": {
       const dist = distanceAt(dungeon, distanceMap, enemy);
-      if (Number.isFinite(dist) && dist <= FAMILIAR_SMELL_RANGE) {
+      if (Number.isFinite(dist) && dist <= LOBO_SMELL_RANGE) {
         return [stepTowards(dungeon, distanceMap, enemy), rng];
       }
       return [null, rng];
@@ -70,20 +70,20 @@ function stepOnce(from: Point, player: Point): Point {
   return { x: from.x, y: from.y + dy };
 }
 
-// La luz mala ignora paredes y siempre te rastrea: se mueve en línea recta
-// hacia el jugador, un eje por turno, sin usar el mapa de distancias.
+// El fuego fatuo ignora paredes y siempre te rastrea: se mueve en línea
+// recta hacia el jugador, un eje por turno, sin usar el mapa de distancias.
 export function decideGhostLightMove(enemy: Point, player: Point): Point {
   return stepOnce(enemy, player);
 }
 
-const WEREWOLF_JUMP_DISTANCE = 3;
+const ALFA_JUMP_DISTANCE = 3;
 
-// El lobizón salta hasta 3 casillas en línea recta hacia el jugador,
+// El Alfa salta hasta 3 casillas en línea recta hacia el jugador,
 // deteniéndose si choca contra una pared o llega a estar adyacente
 // (sección 6).
-export function decideWerewolfJump(dungeon: Dungeon, enemy: Point, player: Point): Point {
+export function decideAlfaJump(dungeon: Dungeon, enemy: Point, player: Point): Point {
   let current = enemy;
-  for (let i = 0; i < WEREWOLF_JUMP_DISTANCE; i++) {
+  for (let i = 0; i < ALFA_JUMP_DISTANCE; i++) {
     const next = stepOnce(current, player);
     if (next.x === current.x && next.y === current.y) break; // ya llegó
     if (!isWalkable(dungeon, next.x, next.y)) break;

@@ -1,20 +1,21 @@
-# Salamanca
+# Bosque Oscuro
 
-Roguelike por turnos en pixel art para la terminal. Descargás, jugás, morís, reintentás.
+Roguelike por turnos en pixel art, jugado en el navegador (Vite + Three.js). Entrás, jugás, morís, reintentás.
 
-Un carpincho baja a la Salamanca, la cueva del folklore donde se aprenden artes prohibidas. 10 pisos generados al azar, muerte permanente, y una partida completa dura entre 5 y 10 minutos.
+Un cazador errante entra al Monte Oscuro, un bosque que perdió la luz. 10 pisos generados al azar, muerte permanente, y una partida completa dura entre 5 y 10 minutos.
 
-<!-- TODO: agregar un GIF de una partida acá una vez grabado (asciinema, terminalizer o similar). -->
+<!-- TODO: agregar un GIF de una partida acá una vez grabado. -->
 
 Ver [`salamanca-diseno.md`](./salamanca-diseno.md) para el documento de diseño completo.
 
 ## Jugar
 
 ```sh
-npx salamanca
+npm install
+npm run dev
 ```
 
-Requiere Node ≥ 18 y una terminal de al menos 80×24 columnas. También hay binarios standalone (sin depender de Node) en la sección [Releases](https://github.com/Felipe2194/game/releases) del repo.
+Abrí la URL que imprime Vite (por defecto `http://localhost:5173`). Requiere un navegador con soporte WebGL.
 
 ### Controles
 
@@ -26,18 +27,18 @@ Requiere Node ≥ 18 y una terminal de al menos 80×24 columnas. También hay bi
 | 1 · 2 · 3 | Usar el objeto del cinturón |
 | M | Ver el mapa completo del piso |
 | ? | Ayuda |
-| Q / Ctrl+C | Salir |
+| Q | Pausar |
 
 ## Desarrollo
 
 ```sh
 npm install
-npm run dev        # corre src/cli.ts con tsx
-npm run build      # genera dist/cli.js
-npm start          # corre el build
+npm run dev         # servidor de desarrollo de Vite
+npm run build       # genera dist/ (sitio estático)
+npm run preview     # sirve el build de dist/ localmente
 npm run typecheck
 npm test
-npm run simulate   # bot headless para medir balance (ver tools/simulate.ts)
+npm run simulate    # bot headless para medir balance (ver tools/simulate.ts)
 ```
 
 ## Licencia

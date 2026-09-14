@@ -17,7 +17,7 @@ function directionTo(from: { x: number; y: number }, to: { x: number; y: number 
 
 // Heurística simple y deliberadamente sin memoria entre turnos: pelear lo
 // que está al lado, curarse si conviene, y si no, avanzar directo hacia la
-// escalera (o hacia el jugador, si es el lobizón el que persigue). No junta
+// escalera (o hacia el jugador, si es el Alfa el que persigue). No junta
 // botín al pasar: una versión anterior que perseguía ítems visibles podía
 // alternar entre "ir a la escalera" e "ir al ítem" turno a turno según
 // parpadeaba la visibilidad de un enemigo, quedando en un loop infinito de
@@ -36,8 +36,8 @@ function chooseAction(state: GameState): Action {
     if (enemyAt(state.enemies, n.x, n.y)) return directionTo(player, n);
   }
 
-  if (player.hp / player.maxHp <= LOW_HP_RATIO && state.belt.includes("mate")) {
-    const slot = (state.belt.indexOf("mate") + 1) as 1 | 2 | 3;
+  if (player.hp / player.maxHp <= LOW_HP_RATIO && state.belt.includes("pocion")) {
+    const slot = (state.belt.indexOf("pocion") + 1) as 1 | 2 | 3;
     return { type: "useItem", slot };
   }
 

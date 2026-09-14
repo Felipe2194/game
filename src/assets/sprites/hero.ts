@@ -1,9 +1,11 @@
 import { rowsToFrame, type Sprite } from "../sprite.js";
 
-// Sprite del carpincho — sección 16 del documento de diseño.
+// Sprite del cazador errante — retemado sobre la referencia de sheet.png
+// ("GANK — El Monte Oscuro"). Capucha y capa en `l`, llama de la antorcha
+// en `e`/`f` (parpadea entre frames). Se espeja al ir a la izquierda.
 export const hero: Sprite = {
   frames: [
-    rowsToFrame(["....l.", "..kkkk", "kkkkak", "kkkkkl", "kkkkk.", ".l.l.."]),
-    rowsToFrame(["....l.", "..kkkk", "kkkkak", "kkkkkl", "kkkkk.", "l...l."]),
+    rowsToFrame(["..ll.e", ".llllf", "llllll", ".llll.", ".l..l.", "......"]),
+    rowsToFrame(["..ll.f", ".lllle", "llllll", ".llll.", "l...l.", "......"]),
   ],
 };

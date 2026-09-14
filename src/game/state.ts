@@ -1,5 +1,5 @@
 import type { EnemyKind } from "../content/enemies.js";
-import { FACON_FLOOR_RANGE, PONCHO_FLOOR_RANGE } from "../content/items.js";
+import { CAPA_FLOOR_RANGE, DAGA_FLOOR_RANGE } from "../content/items.js";
 import { PLAYER_BASE, SCORE_PER_FLOOR } from "./config.js";
 import type { Dungeon } from "./dungeon/types.js";
 import { generateDungeon } from "./dungeon/generate.js";
@@ -32,8 +32,8 @@ export interface GameState {
   enemies: Enemy[];
   items: ItemPickup[];
   belt: Belt;
-  faconFloor: number;
-  ponchoFloor: number;
+  dagaFloor: number;
+  capaFloor: number;
   visible: Set<number>;
   seen: Set<number>;
   messages: string[];
@@ -57,13 +57,13 @@ function withUpdatedVision(dungeon: Dungeon, player: Player, seen: Set<number>):
 
 export function createInitialState(seed: number): GameState {
   const rng = createRng(seed);
-  const [faconFloor, afterFacon] = nextInt(rng, FACON_FLOOR_RANGE[0], FACON_FLOOR_RANGE[1]);
-  const [ponchoFloor, afterPoncho] = nextInt(afterFacon, PONCHO_FLOOR_RANGE[0], PONCHO_FLOOR_RANGE[1]);
+  const [dagaFloor, afterDaga] = nextInt(rng, DAGA_FLOOR_RANGE[0], DAGA_FLOOR_RANGE[1]);
+  const [capaFloor, afterCapa] = nextInt(afterDaga, CAPA_FLOOR_RANGE[0], CAPA_FLOOR_RANGE[1]);
 
-  const [dungeon, afterGen] = generateDungeon(afterPoncho, 1);
+  const [dungeon, afterGen] = generateDungeon(afterCapa, 1);
   const { enemies, items, rng: nextRng } = populateFloor(dungeon, 1, afterGen, {
-    faconFloor,
-    ponchoFloor,
+    dagaFloor,
+    capaFloor,
   });
   const player: Player = {
     x: dungeon.start.x,
@@ -85,11 +85,11 @@ export function createInitialState(seed: number): GameState {
     enemies,
     items,
     belt: createEmptyBelt(),
-    faconFloor,
-    ponchoFloor,
+    dagaFloor,
+    capaFloor,
     visible,
     seen,
-    messages: ["Bajás a la Salamanca."],
+    messages: ["Entrás al bosque oscuro."],
     mode: "play",
     animFrame: 0,
     facingLeft: false,
@@ -116,13 +116,13 @@ export function logMessage(state: GameState, message: string): GameState {
 
 // Genera el piso siguiente y reposiciona al jugador en su entrada,
 // conservando vida, equipo y semilla/rng para que la partida siga
-// siendo reproducible. El efecto de la vela termina al bajar (sección 7).
+// siendo reproducible. El efecto de la antorcha termina al bajar (sección 7).
 export function descendToNextFloor(state: GameState): GameState {
   const nextFloorNumber = state.floor + 1;
   const [dungeon, afterGen] = generateDungeon(state.rng, nextFloorNumber);
   const { enemies, items, rng: nextRng } = populateFloor(dungeon, nextFloorNumber, afterGen, {
-    faconFloor: state.faconFloor,
-    ponchoFloor: state.ponchoFloor,
+    dagaFloor: state.dagaFloor,
+    capaFloor: state.capaFloor,
   });
   const player: Player = {
     ...state.player,

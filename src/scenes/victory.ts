@@ -7,7 +7,7 @@ export function victoryLines(state: GameState, records: SaveEntry[] = []): strin
     "",
     "── ¡Victoria! ──",
     "",
-    "Derrotaste al lobizón y volvés con vida de la Salamanca.",
+    "Derrotaste al Alfa y volvés con vida del Monte Oscuro.",
     `Puntaje: ${state.score}`,
     `Monedas: ${state.gold}`,
     ...formatRecords(records),

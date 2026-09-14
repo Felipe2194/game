@@ -40,8 +40,8 @@ function makeState(overrides: Partial<GameState> = {}): GameState {
     enemies: [],
     items: [],
     belt: createEmptyBelt(),
-    faconFloor: 2,
-    ponchoFloor: 3,
+    dagaFloor: 2,
+    capaFloor: 3,
     visible: new Set(),
     seen: new Set(),
     messages: [],
@@ -57,13 +57,13 @@ function makeState(overrides: Partial<GameState> = {}): GameState {
 
 describe("step", () => {
   it("moverse hacia un enemigo lo ataca en vez de moverse", () => {
-    const enemy = createEnemy(0, "rata", 3, 2); // vida 1, a la derecha del jugador
+    const enemy = createEnemy(0, "escarabajo", 3, 2); // vida 1, a la derecha del jugador
     const state = makeState({ enemies: [enemy] });
 
     const result = step(state, { type: "move", dx: 1, dy: 0 });
 
     expect(result.state.player.x).toBe(2); // no se movió
-    expect(result.state.enemies).toHaveLength(0); // la rata (vida 1) murió
+    expect(result.state.enemies).toHaveLength(0); // el escarabajo (vida 1) murió
     expect(result.state.score).toBeGreaterThan(0);
   });
 
@@ -75,7 +75,7 @@ describe("step", () => {
   });
 
   it("se puede morir de forma justa: un enemigo adyacente puede terminar la partida", () => {
-    const enemy = createEnemy(0, "esqueleto", 3, 2); // adyacente, precisión 75%
+    const enemy = createEnemy(0, "espiritu", 3, 2); // adyacente, precisión 75%
     let state = makeState({ player: makePlayer({ hp: 2, maxHp: 2 }), enemies: [enemy] });
 
     let diedAt = -1;
@@ -87,14 +87,14 @@ describe("step", () => {
 
     expect(diedAt).toBeGreaterThanOrEqual(0);
     expect(state.player.hp).toBe(0);
-    expect(state.deathCause).toBe("esqueleto");
+    expect(state.deathCause).toBe("espiritu");
   });
 
   it("es determinista: la misma semilla y acciones dan el mismo resultado", () => {
     const actions = Array.from({ length: 20 }, () => ({ type: "wait" as const }));
 
     function run(): GameState {
-      let s = makeState({ player: makePlayer({ hp: 6 }), enemies: [createEnemy(0, "esqueleto", 3, 2)] });
+      let s = makeState({ player: makePlayer({ hp: 6 }), enemies: [createEnemy(0, "espiritu", 3, 2)] });
       for (const a of actions) s = step(s, a).state;
       return s;
     }

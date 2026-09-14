@@ -10,19 +10,19 @@ export const palette: Record<PaletteKey, string> = {
   "·": "#0e0f1a", // Fondo, zonas nunca vistas
   a: "#1a1c2c", // Piso, sombras profundas
   b: "#29366f", // Detalles fríos
-  c: "#5d275d", // Murciélago, magia
-  d: "#b13e53", // Vida, ojos de enemigos
-  e: "#ef7d57", // Brillos cálidos, luz mala
-  f: "#ffcd75", // Escalera, oro, velas
-  g: "#a7f070", // Luz mala (núcleo)
-  h: "#38b764", // Veneno, musgo
-  i: "#257179", // Agua, detalles de pared
+  c: "#5d275d", // Cuervo sombrío, magia
+  d: "#b13e53", // Vida, ojos de enemigos, poción de vida
+  e: "#ef7d57", // Brillos cálidos, fuego fatuo, antorcha
+  f: "#ffcd75", // Escalera, oro, antorcha
+  g: "#a7f070", // Fuego fatuo (núcleo)
+  h: "#38b764", // Veneno, musgo, espíritu del bosque
+  i: "#257179", // Agua, detalles de pared, escarabajo de río
   j: "#333c57", // Paredes
-  k: "#8b5a3c", // Carpincho
-  l: "#4e342e", // Madera, mate, sombras marrones
-  m: "#f4f4f4", // Esqueleto, texto
-  n: "#c9a26b", // Mate, poncho
-  o: "#94b0c2", // Borde superior de paredes, metal, rata
+  k: "#8b5a3c", // Lobo acechador
+  l: "#4e342e", // Madera, cazador errante, sombras marrones
+  m: "#f4f4f4", // Texto, brillo de vidrio (poción)
+  n: "#c9a26b", // Capa de cuero, ración de carne
+  o: "#94b0c2", // Borde superior de paredes, metal, daga
 };
 
 // Tabla de atenuación para casillas recordadas (sección 10).
@@ -69,15 +69,4 @@ export function rgbOf(key: PaletteKey): Rgb {
     rgbCache.set(key, cached);
   }
   return cached;
-}
-
-// Conversión aproximada a la paleta xterm-256 para terminales sin truecolor.
-export function rgbToAnsi256({ r, g, b }: Rgb): number {
-  if (r === g && g === b) {
-    if (r < 8) return 16;
-    if (r > 248) return 231;
-    return Math.round(((r - 8) / 247) * 24) + 232;
-  }
-  const toCube = (channel: number) => Math.round((channel / 255) * 5);
-  return 16 + 36 * toCube(r) + 6 * toCube(g) + toCube(b);
 }
