@@ -2,6 +2,8 @@ import {
   ANTORCHA_VISION_BONUS,
   BELT_SLOTS,
   CAPA_DEFENSE_BONUS,
+  COFRE_EMPTY_CHANCE,
+  COFRE_GOLD_RANGE,
   DAGA_ATTACK_BONUS,
   MONEDA_SCORE,
   POCION_HEAL,
@@ -11,6 +13,7 @@ import {
 } from "../content/items.js";
 import type { ItemKind } from "../content/items.js";
 import type { ItemPickup } from "./entities.js";
+import { nextBool, nextInt } from "./rng.js";
 import { logMessage } from "./state.js";
 import type { GameState } from "./state.js";
 
@@ -25,6 +28,19 @@ export function createEmptyBelt(): Belt {
 // en el suelo.
 export function pickUpItem(state: GameState, item: ItemPickup): GameState {
   const def = itemDefs[item.kind];
+
+  if (def.categoria === "cofre") {
+    const [isEmpty, afterEmpty] = nextBool(state.rng, COFRE_EMPTY_CHANCE);
+    if (isEmpty) {
+      return removeItem(logMessage({ ...state, rng: afterEmpty }, "El cofre está vacío."), item.id, {});
+    }
+    const [gold, afterGold] = nextInt(afterEmpty, COFRE_GOLD_RANGE[0], COFRE_GOLD_RANGE[1]);
+    return removeItem(
+      logMessage({ ...state, rng: afterGold }, `Abrís el cofre: ${gold} monedas.`),
+      item.id,
+      { gold: state.gold + gold, score: state.score + gold * MONEDA_SCORE },
+    );
+  }
 
   if (def.categoria === "equipo") {
     const player =

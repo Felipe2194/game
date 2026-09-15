@@ -8,7 +8,7 @@ export function formatRecords(records: SaveEntry[]): string[] {
     "Mejores puntajes:",
     ...records.map((r, i) => {
       const date = new Date(r.date).toLocaleDateString();
-      return `${i + 1}. ${r.score} pts · piso ${r.floor} · ${r.cause} · ${date}`;
+      return `${i + 1}. ${r.score} pts · zona ${r.floor} · ${r.cause} · ${date}`;
     }),
   ];
 }

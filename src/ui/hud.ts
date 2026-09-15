@@ -7,7 +7,7 @@ function hearts(player: Player): string {
   return full + empty;
 }
 
-// Referencia de sección 10: `piso 3  ♥♥♥♥♡♡  atq 2 def 1  [1]pocion [2]antorcha [3]·            oro 12`
+// Referencia de sección 10: `zona 3  ♥♥♥♥♡♡  atq 2 def 1  [1]pocion [2]antorcha [3]·            oro 12`
 export function buildHud(
   floor: number,
   player: Player,
@@ -16,7 +16,7 @@ export function buildHud(
   width: number,
 ): string {
   const left =
-    `piso ${floor}  ${hearts(player)}  atq ${player.attack} def ${player.defense}  ` +
+    `zona ${floor}  ${hearts(player)}  atq ${player.attack} def ${player.defense}  ` +
     belt.map((slot, i) => `[${i + 1}]${slot ?? "·"}`).join(" ");
   const right = `oro ${gold}`;
   const gap = Math.max(1, width - left.length - right.length);

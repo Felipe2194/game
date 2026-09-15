@@ -52,11 +52,11 @@ export function step(state: GameState, action: Action): StepResult {
 
   if (action.type === "descend") {
     if (tileAt(state.dungeon, state.player.x, state.player.y) !== "stairs") {
-      return { state: logMessage(state, "No hay ninguna escalera acá."), events: [] };
+      return { state: logMessage(state, "No hay ningún sendero acá."), events: [] };
     }
     const next = descendToNextFloor(state);
     return {
-      state: logMessage(next, `Bajás al piso ${next.floor}.`),
+      state: logMessage(next, `Te internás en la zona ${next.floor}.`),
       events: [{ type: "descended", floor: next.floor }],
     };
   }

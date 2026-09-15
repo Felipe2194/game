@@ -6,7 +6,13 @@ import { Renderer } from "./engine/renderer.js";
 import type { EntitySpritePlacement } from "./engine/renderer.js";
 import { createInitialState } from "./game/state.js";
 import { step } from "./game/step.js";
-import { drawPlayScene, playEntitySprites, SPRITE_ROOT } from "./scenes/play.js";
+import {
+  bushSprites,
+  drawPlayScene,
+  playEntitySprites,
+  wallDecorationSprites,
+  SPRITE_ROOT,
+} from "./scenes/play.js";
 import type { Point } from "./scenes/play.js";
 import { drawMapOverlay } from "./scenes/map-overlay.js";
 import { helpLines } from "./scenes/help.js";
@@ -144,15 +150,19 @@ function startGame(): void {
     return result;
   }
 
-  // Reconstruye tiles + brillo (solo cuando cambia el estado lógico, no en
-  // cada frame de la animación de movimiento).
+  // Reconstruye tiles + brillo + decoración de paredes (solo cuando cambia
+  // el estado lógico, no en cada frame de la animación de movimiento: la
+  // posición de una pared nunca se anima).
+  let wallDecorations: EntitySpritePlacement[] = [];
   function updateStaticScene(): void {
     fb.clear("·");
     light.clear(1);
+    wallDecorations = [];
     if (state.mode === "map") {
       drawMapOverlay(fb, state);
     } else if (state.mode === "play") {
       drawPlayScene(fb, light, state);
+      wallDecorations = [...wallDecorationSprites(state), ...bushSprites(state)];
     }
   }
 
@@ -188,7 +198,7 @@ function startGame(): void {
       const heroPos = currentHeroPos(now);
       const enemyPos = currentEnemyPositions(now);
       renderer.syncEntities(
-        playEntitySprites(state, { hero: heroPos, enemies: enemyPos }),
+        [...wallDecorations, ...playEntitySprites(state, { hero: heroPos, enemies: enemyPos })],
         light,
       );
       renderer.render(fb, light);

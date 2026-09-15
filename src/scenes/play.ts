@@ -1,7 +1,7 @@
 import type { PaletteKey } from "../assets/palette.js";
 import type { EnemyKind } from "../content/enemies.js";
 import type { ItemKind } from "../content/items.js";
-import { VIEWPORT_TILES_TALL, VIEWPORT_TILES_WIDE } from "../game/config.js";
+import { PLAYER_BASE, VIEWPORT_TILES_TALL, VIEWPORT_TILES_WIDE } from "../game/config.js";
 import { isWalkable, tileAt, tileIndex } from "../game/dungeon/types.js";
 import type { Dungeon } from "../game/dungeon/types.js";
 import type { GameState } from "../game/state.js";
@@ -70,6 +70,103 @@ export function drawPlayScene(fb: Framebuffer, light: Lightmap, state: GameState
 
 export const SPRITE_ROOT = "/sprites/";
 
+// Límites del bosque en vez de paredes de mazmorra: cada casilla de pared
+// se decora con un pino, una tranquera o el borde de un río, elegido
+// determinísticamente por posición (mismo mundo → mismo bosque siempre).
+// Puramente visual: la casilla sigue siendo intransitable igual que antes.
+const WALL_DECORATIONS: { file: string; heightTiles: number; weight: number }[] = [
+  { file: "pino.png", heightTiles: 1.5, weight: 5 },
+  { file: "tranquera.png", heightTiles: 1.0, weight: 2 },
+  { file: "rio.png", heightTiles: 1.05, weight: 2 },
+];
+const WALL_DECORATION_TOTAL_WEIGHT = WALL_DECORATIONS.reduce((sum, d) => sum + d.weight, 0);
+
+function hashTile(x: number, y: number): number {
+  const h = (x * 374761393 + y * 668265263) ^ (x * 2246822519);
+  return (h ^ (h >>> 13)) >>> 0;
+}
+
+function pickWallDecoration(worldX: number, worldY: number): { file: string; heightTiles: number } {
+  let n = hashTile(worldX, worldY) % WALL_DECORATION_TOTAL_WEIGHT;
+  for (const deco of WALL_DECORATIONS) {
+    if (n < deco.weight) return deco;
+    n -= deco.weight;
+  }
+  return WALL_DECORATIONS[0]!;
+}
+
+// Un pino/tranquera/río por casilla de pared explorada (visible o
+// recordada, igual que el propio tile). Se recalcula solo cuando cambia
+// el estado lógico (junto con `drawPlayScene`), no en cada frame de
+// animación — la posición de una pared nunca se anima.
+export function wallDecorationSprites(state: GameState): EntitySpritePlacement[] {
+  const { dungeon, player } = state;
+  const camera = computeCamera(
+    player,
+    dungeon.width,
+    dungeon.height,
+    VIEWPORT_TILES_WIDE,
+    VIEWPORT_TILES_TALL,
+  );
+  const placements: EntitySpritePlacement[] = [];
+
+  for (let vy = 0; vy < VIEWPORT_TILES_TALL; vy++) {
+    for (let vx = 0; vx < VIEWPORT_TILES_WIDE; vx++) {
+      const worldX = camera.x + vx;
+      const worldY = camera.y + vy;
+      if (worldX < 0 || worldY < 0 || worldX >= dungeon.width || worldY >= dungeon.height) continue;
+      if (tileAt(dungeon, worldX, worldY) !== "wall") continue;
+
+      const index = tileIndex(dungeon, worldX, worldY);
+      if (!state.visible.has(index) && !state.seen.has(index)) continue;
+
+      const deco = pickWallDecoration(worldX, worldY);
+      placements.push({
+        image: SPRITE_ROOT + deco.file,
+        tileX: vx,
+        tileY: vy,
+        heightTiles: deco.heightTiles,
+      });
+    }
+  }
+
+  return placements;
+}
+
+// Un arbusto por casilla reservada en `populateFloor` — algunos esconden
+// un enemigo u objeto (mismo lugar, "detrás" del arbusto) y otros quedan
+// vacíos; el jugador no puede saber cuál desde afuera. Se dibuja igual que
+// una pared: visible o recordada (el brillo de una u otra lo pone el
+// `Lightmap` que ya calculó `drawPlayScene`).
+export function bushSprites(state: GameState): EntitySpritePlacement[] {
+  const { dungeon, player } = state;
+  const camera = computeCamera(
+    player,
+    dungeon.width,
+    dungeon.height,
+    VIEWPORT_TILES_WIDE,
+    VIEWPORT_TILES_TALL,
+  );
+  const placements: EntitySpritePlacement[] = [];
+
+  for (const bush of state.bushes) {
+    const index = tileIndex(dungeon, bush.x, bush.y);
+    if (!state.visible.has(index) && !state.seen.has(index)) continue;
+    const vx = bush.x - camera.x;
+    const vy = bush.y - camera.y;
+    if (vx < 0 || vy < 0 || vx >= VIEWPORT_TILES_WIDE || vy >= VIEWPORT_TILES_TALL) continue;
+    placements.push({
+      image: SPRITE_ROOT + "arbusto.png",
+      tileX: vx,
+      tileY: vy,
+      heightTiles: 0.75,
+      behind: true,
+    });
+  }
+
+  return placements;
+}
+
 const ENEMY_SPRITE: Record<Exclude<EnemyKind, "alfa">, { file: string; heightTiles: number }> = {
   escarabajo: { file: "escarabajo.png", heightTiles: 0.9 },
   cuervo: { file: "cuervo.png", heightTiles: 1.0 },
@@ -88,6 +185,7 @@ const ITEM_SPRITE: Record<ItemKind, { file: string; heightTiles: number }> = {
   daga: { file: "daga.png", heightTiles: 0.8 },
   capa: { file: "capa.png", heightTiles: 0.8 },
   moneda: { file: "moneda.png", heightTiles: 0.55 },
+  cofre: { file: "cofre.png", heightTiles: 0.85 },
 };
 
 const ALFA_HEIGHT_TILES = 1.8;
@@ -178,13 +276,49 @@ export function playEntitySprites(
   const heroPos = inView(player.x, player.y, heroRenderPos);
   if (heroPos) {
     const frame = state.animFrame % 2;
+    // El cazador se va "equipando" a medida que junta objetos: la daga
+    // (equipo permanente) queda dibujada en la mano en el propio sprite;
+    // la capa y la antorcha —más difíciles de integrar de forma prolija en
+    // un sprite tan chico sin arte hecho a mano para cada combinación— se
+    // muestran como un pequeño indicador aparte, pegado al personaje.
+    const hasDaga = player.attack > PLAYER_BASE.attack;
+    const hasCapa = player.defense > PLAYER_BASE.defense;
+    const hasTorchLit = state.belt.includes("antorcha") || player.vision > PLAYER_BASE.vision;
+    const heroFile = hasDaga
+      ? frame === 0
+        ? "hero-0-daga.png"
+        : "hero-1-daga.png"
+      : frame === 0
+        ? "hero-0.png"
+        : "hero-1.png";
+
     placements.push({
-      image: SPRITE_ROOT + (frame === 0 ? "hero-0.png" : "hero-1.png"),
+      image: SPRITE_ROOT + heroFile,
       tileX: heroPos.vx,
       tileY: heroPos.vy,
       heightTiles: HERO_HEIGHT_TILES,
       flipX: state.facingLeft,
     });
+
+    const sideSign = state.facingLeft ? -1 : 1;
+    if (hasCapa) {
+      placements.push({
+        image: SPRITE_ROOT + "capa.png",
+        tileX: heroPos.vx - sideSign * 0.32,
+        tileY: heroPos.vy - 0.65,
+        heightTiles: 0.5,
+        flipX: state.facingLeft,
+      });
+    }
+    if (hasTorchLit) {
+      placements.push({
+        image: SPRITE_ROOT + "antorcha.png",
+        tileX: heroPos.vx + sideSign * 0.4,
+        tileY: heroPos.vy - 0.25,
+        heightTiles: 0.55,
+        flipX: state.facingLeft,
+      });
+    }
   }
 
   return placements;

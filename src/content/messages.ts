@@ -17,7 +17,7 @@ export function enemyMissedMessage(enemy: EnemyDef): string {
 }
 
 export function deathCauseMessage(enemy: EnemyDef, floor: number): string {
-  return `Te mató ${enemy.nombre} en el piso ${floor}.`;
+  return `Te mató ${enemy.nombre} en la zona ${floor}.`;
 }
 
 function capitalize(text: string): string {

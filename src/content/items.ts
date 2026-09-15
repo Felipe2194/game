@@ -1,5 +1,5 @@
-export type ItemKind = "pocion" | "antorcha" | "racion" | "daga" | "capa" | "moneda";
-export type ItemCategory = "cinturon" | "inmediato" | "equipo";
+export type ItemKind = "pocion" | "antorcha" | "racion" | "daga" | "capa" | "moneda" | "cofre";
+export type ItemCategory = "cinturon" | "inmediato" | "equipo" | "cofre";
 
 export interface ItemDef {
   kind: ItemKind;
@@ -16,6 +16,7 @@ export const items: Record<ItemKind, ItemDef> = {
   daga: { kind: "daga", nombre: "una daga de caza", categoria: "equipo" },
   capa: { kind: "capa", nombre: "una capa de cuero", categoria: "equipo" },
   moneda: { kind: "moneda", nombre: "una moneda", categoria: "inmediato" },
+  cofre: { kind: "cofre", nombre: "un cofre", categoria: "cofre" },
 };
 
 export const POCION_HEAL = 2;
@@ -34,3 +35,8 @@ export const DAGA_FLOOR_RANGE: [min: number, max: number] = [2, 4];
 export const CAPA_FLOOR_RANGE: [min: number, max: number] = [3, 6];
 
 export const BELT_SLOTS = 3;
+
+// Cofres (sección 7): pueden estar vacíos o dar oro. Uno cada tantos pisos.
+export const COFRE_EVERY_N_FLOORS = 2;
+export const COFRE_EMPTY_CHANCE = 0.35;
+export const COFRE_GOLD_RANGE: [min: number, max: number] = [4, 9];

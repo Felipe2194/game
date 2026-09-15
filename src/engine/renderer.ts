@@ -21,6 +21,9 @@ export interface EntitySpritePlacement {
   tileY: number;
   heightTiles: number;
   flipX?: boolean;
+  // Más cerca del fondo que el resto (p. ej. un arbusto detrás de lo que
+  // pueda estar escondido adentro), en vez del plano normal de entidades.
+  behind?: boolean;
 }
 
 const textureLoader = new THREE.TextureLoader();
@@ -50,6 +53,15 @@ function loadSpriteTexture(path: string): THREE.Texture {
 // suavice (sección 13/14 del documento). Los personajes/criaturas/objetos
 // se dibujan aparte, como sprites de Three.js con imágenes reales
 // (public/sprites/), sobre ese fondo.
+// Geometría compartida por todos los sprites de entidad: un plano unitario
+// (1×1) escalado por instancia. Se usa `Mesh` en vez de `Sprite` a
+// propósito: el shader de `Sprite` saca el tamaño con `length()` sobre la
+// escala, así que ignora el signo — `scale.x` negativo (espejado para
+// mirar a la izquierda) no hacía nada. Como la cámara es ortográfica y
+// nunca rota, un `Mesh` de frente se ve igual que un sprite/billboard acá,
+// y sí respeta el signo de la escala.
+const ENTITY_GEOMETRY = new THREE.PlaneGeometry(1, 1);
+
 export class Renderer {
   private readonly scene = new THREE.Scene();
   private readonly camera: THREE.OrthographicCamera;
@@ -59,7 +71,7 @@ export class Renderer {
   private readonly imageData: ImageData;
   private readonly fbWidth: number;
   private readonly fbHeight: number;
-  private readonly entityPool: THREE.Sprite[] = [];
+  private readonly entityPool: THREE.Mesh[] = [];
 
   constructor(canvas: HTMLCanvasElement, fbWidth: number, fbHeight: number) {
     this.fbWidth = fbWidth;
@@ -111,38 +123,39 @@ export class Renderer {
   // `light` los tiñe con el mismo brillo que su tile (efecto linterna).
   syncEntities(placements: EntitySpritePlacement[], light?: Lightmap): void {
     while (this.entityPool.length < placements.length) {
-      const sprite = new THREE.Sprite(
-        new THREE.SpriteMaterial({ transparent: true, alphaTest: 0.3, depthWrite: false }),
+      const mesh = new THREE.Mesh(
+        ENTITY_GEOMETRY,
+        new THREE.MeshBasicMaterial({ transparent: true, alphaTest: 0.3, depthWrite: false }),
       );
-      this.scene.add(sprite);
-      this.entityPool.push(sprite);
+      this.scene.add(mesh);
+      this.entityPool.push(mesh);
     }
 
     for (let i = 0; i < this.entityPool.length; i++) {
-      const sprite = this.entityPool[i]!;
+      const mesh = this.entityPool[i]!;
       const placement = placements[i];
       if (!placement) {
-        sprite.visible = false;
+        mesh.visible = false;
         continue;
       }
-      sprite.visible = true;
+      mesh.visible = true;
 
       const texture = loadSpriteTexture(placement.image);
-      const material = sprite.material;
+      const material = mesh.material as THREE.MeshBasicMaterial;
       if (material.map !== texture) material.map = texture;
 
       const img = texture.image as { width?: number; height?: number } | undefined;
       const aspect = img?.width && img?.height ? img.width / img.height : 1;
       const heightWorld = placement.heightTiles * TILE_SIZE;
       const widthWorld = heightWorld * aspect;
-      sprite.scale.set(placement.flipX ? -widthWorld : widthWorld, heightWorld, 1);
+      mesh.scale.set(placement.flipX ? -widthWorld : widthWorld, heightWorld, 1);
 
       // Ancla el sprite por el borde inferior del tile ("los pies").
       const centerXpx = (placement.tileX + 0.5) * TILE_SIZE;
       const bottomYpx = (placement.tileY + 1) * TILE_SIZE;
       const worldX = centerXpx - this.fbWidth / 2;
       const worldY = this.fbHeight / 2 - bottomYpx + heightWorld / 2;
-      sprite.position.set(worldX, worldY, 0.1);
+      mesh.position.set(worldX, worldY, placement.behind ? 0.05 : 0.1);
 
       const brightness = light ? light.get(Math.round(placement.tileX), Math.round(placement.tileY)) : 1;
       material.color.setScalar(Math.max(0.15, brightness));

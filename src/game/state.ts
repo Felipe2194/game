@@ -1,7 +1,7 @@
 import type { EnemyKind } from "../content/enemies.js";
 import { CAPA_FLOOR_RANGE, DAGA_FLOOR_RANGE } from "../content/items.js";
 import { PLAYER_BASE, SCORE_PER_FLOOR } from "./config.js";
-import type { Dungeon } from "./dungeon/types.js";
+import type { Dungeon, Point } from "./dungeon/types.js";
 import { generateDungeon } from "./dungeon/generate.js";
 import { populateFloor } from "./dungeon/populate.js";
 import type { Enemy, ItemPickup } from "./entities.js";
@@ -31,6 +31,7 @@ export interface GameState {
   player: Player;
   enemies: Enemy[];
   items: ItemPickup[];
+  bushes: Point[];
   belt: Belt;
   dagaFloor: number;
   capaFloor: number;
@@ -61,7 +62,7 @@ export function createInitialState(seed: number): GameState {
   const [capaFloor, afterCapa] = nextInt(afterDaga, CAPA_FLOOR_RANGE[0], CAPA_FLOOR_RANGE[1]);
 
   const [dungeon, afterGen] = generateDungeon(afterCapa, 1);
-  const { enemies, items, rng: nextRng } = populateFloor(dungeon, 1, afterGen, {
+  const { enemies, items, bushes, rng: nextRng } = populateFloor(dungeon, 1, afterGen, {
     dagaFloor,
     capaFloor,
   });
@@ -84,6 +85,7 @@ export function createInitialState(seed: number): GameState {
     player,
     enemies,
     items,
+    bushes,
     belt: createEmptyBelt(),
     dagaFloor,
     capaFloor,
@@ -120,7 +122,7 @@ export function logMessage(state: GameState, message: string): GameState {
 export function descendToNextFloor(state: GameState): GameState {
   const nextFloorNumber = state.floor + 1;
   const [dungeon, afterGen] = generateDungeon(state.rng, nextFloorNumber);
-  const { enemies, items, rng: nextRng } = populateFloor(dungeon, nextFloorNumber, afterGen, {
+  const { enemies, items, bushes, rng: nextRng } = populateFloor(dungeon, nextFloorNumber, afterGen, {
     dagaFloor: state.dagaFloor,
     capaFloor: state.capaFloor,
   });
@@ -139,6 +141,7 @@ export function descendToNextFloor(state: GameState): GameState {
     dungeon,
     enemies,
     items,
+    bushes,
     player,
     visible,
     seen,

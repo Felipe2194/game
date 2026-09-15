@@ -4,7 +4,7 @@
 
 ## 1. Pitch
 
-Un cazador errante entra al Monte Oscuro, un bosque que perdió la luz. Son 10 pisos generados al azar: escarabajos y cuervos cerca de la entrada, espíritus corrompidos y lobos más abajo, y el Alfa esperando en el fondo. Si morís, se pierde todo y arrancás de nuevo. Una partida completa dura entre 5 y 10 minutos.
+Un cazador errante entra al Monte Oscuro, un bosque que perdió la luz. Son 10 zonas generadas al azar (`state.floor` internamente sigue siendo un número de "piso", pero en pantalla y en el texto del juego siempre es "zona" — bajar escaleras no encaja con estar en un bosque): escarabajos y cuervos cerca de la entrada, espíritus corrompidos y lobos más adentro, y el Alfa esperando en el fondo. Si morís, se pierde todo y arrancás de nuevo. Una partida completa dura entre 5 y 10 minutos.
 
 ## 2. Principios de diseño
 
@@ -23,9 +23,9 @@ Un cazador errante entra al Monte Oscuro, un bosque que perdió la luz. Son 10 p
 |---|---|
 | Flechas / WASD / HJKL | Moverse; moverse hacia un enemigo lo ataca |
 | Espacio / `.` | Esperar un turno |
-| Enter / `>` | Bajar la escalera (hay que estar parado encima) |
+| Enter / `>` | Seguir el sendero a la próxima zona (hay que estar parado encima) |
 | 1 · 2 · 3 | Usar el objeto del cinturón |
-| M | Ver el mapa completo del piso |
+| M | Ver el mapa completo de la zona |
 | ? | Ayuda |
 | Q | Salir, con confirmación |
 | Ctrl+C | Salida inmediata, siempre restaura la terminal |
@@ -82,8 +82,11 @@ Cantidad por piso: 2 + número de piso, con un máximo de 9. La sala inicial nun
 | Daga de caza | Equipo | +1 ataque | Garantizado entre pisos 2 y 4 |
 | Capa de cuero | Equipo | +1 defensa | Garantizado entre pisos 3 y 6 |
 | Monedas | Inmediato | Suman al puntaje | 3–5 por piso |
+| Cofre | Cofre | 65% da 4–9 monedas, 35% "está vacío" | 1 cada 2 pisos |
 
-Los objetos se agarran solos al pisarlos. El cinturón tiene 3 espacios; si está lleno, el objeto queda en el suelo.
+Los objetos se agarran solos al pisarlos. El cinturón tiene 3 espacios; si está lleno, el objeto queda en el suelo. El cofre se resuelve en el momento (no ocupa espacio): o suma monedas o el log dice que estaba vacío — `game/items.ts`, `content/items.ts` (`COFRE_*`).
+
+**Arbustos.** `populateFloor` reserva unas pocas casillas de piso (hasta 5, `game/dungeon/populate.ts`) antes de repartir enemigos y objetos; los primeros enemigos/objetos en pedir una casilla "roban" un arbusto en vez de una del pool general. El resultado: algunos arbustos esconden algo y otros quedan vacíos, sin que el jugador pueda distinguirlos desde afuera. Puramente de posicionamiento — el arbusto no bloquea el paso ni agrega un paso de "buscar", es la misma casilla de siempre con un sprite de arbusto dibujado detrás (`Renderer`, `behind: true`).
 
 ## 8. Generación de pisos
 
@@ -173,11 +176,15 @@ Pared, piso y escalera siguen siendo color plano de la paleta de 16 colores, dib
 
 ### Personajes, criaturas y objetos (imágenes reales, `public/sprites/`)
 
-> **Referencia de arte "GANK — El Monte Oscuro" (`sheet.png`).** A diferencia de los tiles, el jugador, los enemigos, el jefe y los objetos (salvo la moneda) **no** son pixel art de 6×6 generado a mano: son recortes reales de `sheet.png`, con el fondo de cada tarjeta convertido a transparencia, servidos como PNG desde `public/sprites/` y dibujados por `Renderer.syncEntities` como `THREE.Sprite` (billboards) sobre el framebuffer de tiles — ver `scenes/play.ts` (`playEntitySprites`) y sección 14. Cada uno tiene una altura fija en tiles (`heightTiles`); el ancho sale del aspect ratio real de la imagen, y se ancla por el borde inferior del tile ("los pies").
+> **Referencia de arte "GANK — El Monte Oscuro" (`sheet.png`).** A diferencia de los tiles, el jugador, los enemigos, el jefe y los objetos (salvo la moneda) **no** son pixel art de 6×6 generado a mano: son recortes reales de `sheet.png`, con el fondo de cada tarjeta convertido a transparencia, servidos como PNG desde `public/sprites/` y dibujados por `Renderer.syncEntities` como planos de `THREE.Mesh` (no `THREE.Sprite`: ver nota más abajo) sobre el framebuffer de tiles — ver `scenes/play.ts` (`playEntitySprites`) y sección 14. Cada uno tiene una altura fija en tiles (`heightTiles`); el ancho sale del aspect ratio real de la imagen, y se ancla por el borde inferior del tile ("los pies").
+>
+> Los pinos/tranqueras/ríos (paredes) y arbustos/cofre no vienen de `sheet.png` — no hay referencia de mazmorra/bosque en la hoja original — y se dibujaron a mano como pixel art chico (grillas de texto → PNG con `sharp`, mismo criterio que la moneda).
 
 | Grupo | Sprite | Archivo | Alto (tiles) | Frames |
 |---|---|---|---|---|
 | Jugador | Cazador errante (se espeja al ir a la izquierda) | `hero-0.png` / `hero-1.png` | 1.6 | 2 (respira) |
+| Jugador +daga | Ídem, con la daga en la mano (`hasDaga`) | `hero-0-daga.png` / `hero-1-daga.png` | 1.6 | 2 |
+| Jugador +capa/antorcha | Ídem, con un ícono de `capa.png`/`antorcha.png` pegado al lado (no integrado al sprite — ver nota) | — | 0.5 | 1 |
 | Enemigo | Escarabajo de río | `escarabajo.png` | 0.9 | 1 |
 | Enemigo | Cuervo sombrío | `cuervo.png` | 1.0 | 1 |
 | Enemigo | Espíritu del bosque | `espiritu.png` | 1.4 | 1 |
@@ -190,15 +197,22 @@ Pared, piso y escalera siguen siendo color plano de la paleta de 16 colores, dib
 | Objeto | Daga de caza | `daga.png` | 0.8 | 1 |
 | Objeto | Capa de cuero | `capa.png` | 0.8 | 1 |
 | Objeto | Moneda (sin arte en `sheet.png`, ícono generado aparte) | `moneda.png` | 0.55 | 1 |
+| Objeto | Cofre (sin arte en `sheet.png`) | `cofre.png` | 0.85 | 1 |
+| Pared (bosque) | Pino / tranquera / río, elegido por hash de posición | `pino.png` / `tranquera.png` / `rio.png` | 1.5 / 1.0 / 1.05 | 1 |
+| Decoración | Arbusto (puede esconder un enemigo/objeto en la misma casilla) | `arbusto.png` | 0.75 | 1 |
 
 Los enemigos no tienen animación propia todavía (un solo frame, quietos); solo el jugador tiene 2 frames (respira/llama parpadea), recortados de la fila "Animaciones → Quieto" de `sheet.png`. El jefe reutiliza el mismo `alfa.png` para el estado "agazapado", solo un poco más chico (1.5 en vez de 1.8 tiles) como telegraph visual, ya que la referencia no incluye una pose agachada aparte.
+
+**Equipo progresivo (`hasDaga`/`hasCapa`, derivados de `player.attack`/`player.defense`).** Se probó integrar la capa como prenda puesta sobre el cuerpo (superpuesta detrás, recolor del sayo existente) y no se logró que se viera bien a este tamaño sin arte hecho a mano por combinación — cualquier intento quedaba sucio o directamente irreconocible. Se optó por: la daga sí queda dibujada en la mano (compuesta una sola vez sobre `hero-0.png`/`hero-1.png`, alineada a la mancha de piel que marca la mano), y la capa/antorcha se muestran como un ícono chico pegado al lado del personaje en vez de "puestos" — menos prolijo, pero legible y sin arruinar el sprite base. La antorcha "prendida" se muestra mientras `state.belt` tiene una antorcha o la visión está aumentada; no hay una versión "apagada" distinta del sprite base porque la pose de reposo del sheet no muestra el fuego con claridad para empezar.
+
+> **Nota (Sprite vs Mesh para espejar).** `THREE.Sprite`/`SpriteMaterial` calculan el tamaño en su shader con `length()` sobre la escala del objeto, que descarta el signo — poner `scale.x` negativo para espejar un sprite mirando a la izquierda no hacía nada (bug real, reportado por el usuario: el cazador "siempre mira a la derecha"). Como la cámara es ortográfica y no rota nunca, un plano de `THREE.Mesh` de frente se ve igual que un sprite/billboard acá, y si respeta el signo de la escala — por eso el renderer usa `Mesh` + una `PlaneGeometry(1,1)` compartida en vez de `Sprite`.
 
 ### Reglas de estilo (tiles y assets nuevos)
 
 - Tiles: máximo 4 colores por sprite, más transparente; sin degradados ni antialiasing (regla original, sección 10 histórica).
 - Sprites de `public/sprites/`: recorte ajustado al contenido real (sin franjas de fondo ni líneas divisorias del sheet — ver nota abajo), fondo transparente, silueta reconocible sobre el piso oscuro.
 
-> **Nota (líneas divisorias del sheet).** `sheet.png` separa cada tarjeta con una línea fina. Si un recorte queda demasiado pegado al borde de su tarjeta, esa línea sobrevive el recorte como una columna opaca y gris aislada — invisible a simple vista en el PNG pero muy notoria en el juego, ya escalada. Antes de dar un sprite por terminado, conviene revisar sus columnas de borde (opacas, baja saturación, aisladas por transparencia) y no solo mirar el PNG de reojo.
+> **Nota (líneas divisorias del sheet y alfa parcial).** `sheet.png` separa cada tarjeta con una línea fina. Si un recorte queda demasiado pegado al borde de su tarjeta, esa línea sobrevive el recorte como una columna opaca y gris aislada — invisible a simple vista en el PNG pero muy notoria en el juego, ya escalada. Más en general: el recorte por color-distancia contra el fondo de la tarjeta deja muchos píxeles internos (sombras oscuras del propio personaje, cercanas en color al fondo casi negro) con alfa parcial en vez de 0 o 255 — invisible en el PNG a simple vista, pero se nota como un aura semitransparente/lavada cuando esa zona queda sobre un tile claro (reportado por el usuario como "el personaje se ve transparente cerca de una pared"). La corrección que funcionó: binarizar el alfa de todo el sprite (todo <130 → 0, todo ≥130 → 255) en vez de dejar la transición suave del keying original, y recién ahí volver a recortar al contenido real. Antes de dar un sprite por terminado conviene revisar su histograma de alfa (¿hay valores entre 1 y 254?), no solo mirar el PNG de reojo.
 
 ### Animación
 

@@ -40,6 +40,7 @@ function makeState(overrides: Partial<GameState> = {}): GameState {
     player: makePlayer(),
     enemies: [],
     items: [],
+    bushes: [],
     belt: createEmptyBelt(),
     dagaFloor: 2,
     capaFloor: 3,

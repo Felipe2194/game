@@ -1,6 +1,7 @@
 import { enemiesForFloor, enemyCountForFloor } from "../../content/enemies.js";
 import {
   ANTORCHA_SPAWN_CHANCE,
+  COFRE_EVERY_N_FLOORS,
   COINS_PER_FLOOR,
   POCION_PER_FLOOR,
   RACION_EVERY_N_FLOORS,
@@ -40,8 +41,12 @@ export interface PopulateOptions {
 export interface PopulateResult {
   enemies: Enemy[];
   items: ItemPickup[];
+  bushes: Point[];
   rng: Rng;
 }
+
+const BUSH_MAX_COUNT = 5;
+const BUSH_CANDIDATE_DIVISOR = 6; // 1 arbusto cada ~6 casillas libres, hasta el máximo
 
 // Enemigos y objetos según el piso (secciones 6 y 7). La sala inicial nunca
 // tiene enemigos ni objetos. El piso del jefe solo tiene al Alfa, lejos
@@ -55,7 +60,7 @@ export function populateFloor(
   if (dungeon.isBossFloor) {
     const room = dungeon.rooms[0];
     const spot = room ? roomCenter(room) : dungeon.start;
-    return { enemies: [createEnemy(0, "alfa", spot.x, spot.y)], items: [], rng };
+    return { enemies: [createEnemy(0, "alfa", spot.x, spot.y)], items: [], bushes: [], rng };
   }
 
   const [shuffled, afterShuffle] = shuffle(rng, candidateTiles(dungeon));
@@ -63,11 +68,28 @@ export function populateFloor(
   let cursor = 0;
   const take = (): Point | undefined => shuffled[cursor++];
 
+  // Arbustos: unas pocas casillas se marcan como arbusto antes de repartir
+  // enemigos y objetos. Los primeros enemigos/objetos en pedir una casilla
+  // "roban" un arbusto en vez de una casilla común — así algunos arbustos
+  // esconden algo y otros quedan vacíos, sin tocar la lógica de spawn en sí.
+  const bushCount = Math.min(BUSH_MAX_COUNT, Math.floor(shuffled.length / BUSH_CANDIDATE_DIVISOR));
+  const bushes: Point[] = [];
+  for (let i = 0; i < bushCount; i++) {
+    const spot = take();
+    if (!spot) break;
+    bushes.push(spot);
+  }
+  let bushCursor = 0;
+  const takeBiased = (): Point | undefined => {
+    if (bushCursor < bushes.length) return bushes[bushCursor++];
+    return take();
+  };
+
   const enemyPool = enemiesForFloor(floor);
   const enemyCount = enemyPool.length === 0 ? 0 : Math.min(enemyCountForFloor(floor), shuffled.length);
   const enemies: Enemy[] = [];
   for (let i = 0; i < enemyCount; i++) {
-    const spot = take();
+    const spot = takeBiased();
     if (!spot) break;
     const [def, afterPick] = pick(current, enemyPool);
     current = afterPick;
@@ -87,6 +109,7 @@ export function populateFloor(
   if (floor % RACION_EVERY_N_FLOORS === 0) itemKinds.push("racion");
   if (floor === options.dagaFloor) itemKinds.push("daga");
   if (floor === options.capaFloor) itemKinds.push("capa");
+  if (floor % COFRE_EVERY_N_FLOORS === 0) itemKinds.push("cofre");
 
   const [coinCount, afterCoins] = nextInt(current, COINS_PER_FLOOR[0], COINS_PER_FLOOR[1]);
   current = afterCoins;
@@ -94,12 +117,12 @@ export function populateFloor(
 
   const items: ItemPickup[] = [];
   for (const kind of itemKinds) {
-    const spot = take();
+    const spot = takeBiased();
     if (!spot) break;
     items.push({ id: items.length, kind, x: spot.x, y: spot.y });
   }
 
-  return { enemies, items, rng: current };
+  return { enemies, items, bushes, rng: current };
 }
 
 export function enemyAt(enemies: Enemy[], x: number, y: number): Enemy | undefined {

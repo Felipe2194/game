@@ -12,7 +12,7 @@ export function gameOverLines(state: GameState, records: SaveEntry[] = []): stri
     "",
     cause,
     `Puntaje: ${state.score}`,
-    `Piso alcanzado: ${state.floor}`,
+    `Zona alcanzada: ${state.floor}`,
     ...formatRecords(records),
     "",
     "Presioná cualquier tecla para reintentar.",
