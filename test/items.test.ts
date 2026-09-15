@@ -45,7 +45,6 @@ function makeState(overrides: Partial<GameState> = {}): GameState {
     seen: new Set(),
     messages: [],
     mode: "play",
-    animFrame: 0,
     facingLeft: false,
     gold: 0,
     score: 0,
@@ -61,6 +60,17 @@ describe("items", () => {
     expect(result.consumedTurn).toBe(true);
     expect(result.state.player.hp).toBe(6); // 4 + 2, sin pasarse del máximo
     expect(result.state.belt[0]).toBeUndefined();
+  });
+
+  it("con la vida al máximo, la poción no se gasta ni consume turno", () => {
+    const state = makeState({
+      player: makePlayer({ hp: 6, maxHp: 6 }),
+      belt: ["pocion", undefined, undefined],
+    });
+    const result = useBeltSlot(state, 0);
+    expect(result.consumedTurn).toBe(false);
+    expect(result.state.belt[0]).toBe("pocion");
+    expect(result.state.player.hp).toBe(6);
   });
 
   it("usar un slot vacío no consume turno", () => {

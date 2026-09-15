@@ -199,9 +199,13 @@ export interface Point {
 
 // Posiciones interpoladas (animación de movimiento, ver main.ts) que
 // reemplazan la posición exacta del estado al armar los placements, sin
-// alterar de qué casilla salen la cámara ni la visibilidad.
+// alterar de qué casilla salen la cámara ni la visibilidad. `heroFrame`
+// hace lo mismo con el frame del cazador: al estilo Pokémon, "camina"
+// (alterna frame) solo mientras se desliza entre casillas y queda quieto
+// (frame 0) el resto del tiempo, en vez de parpadear todo el rato.
 export interface EntityPositionOverrides {
   hero?: Point;
+  heroFrame?: number;
   enemies?: Map<number, Point>;
 }
 
@@ -275,7 +279,7 @@ export function playEntitySprites(
   const heroRenderPos = overrides?.hero ?? player;
   const heroPos = inView(player.x, player.y, heroRenderPos);
   if (heroPos) {
-    const frame = state.animFrame % 2;
+    const frame = (overrides?.heroFrame ?? 0) % 2;
     // El cazador se va "equipando" a medida que junta objetos: la daga
     // (equipo permanente) queda dibujada en la mano en el propio sprite;
     // la capa y la antorcha —más difíciles de integrar de forma prolija en

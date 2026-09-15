@@ -76,7 +76,7 @@ Cantidad por piso: 2 + número de piso, con un máximo de 9. La sala inicial nun
 
 | Objeto | Tipo | Efecto | Aparición |
 |---|---|---|---|
-| Poción de vida | Cinturón | Cura 2 de vida | 1–2 por piso |
+| Poción de vida | Cinturón | Cura 2 de vida (no se puede usar con la vida al máximo, para no perderla sin curar nada) | 1–2 por piso |
 | Antorcha | Cinturón | Visión 5 → 8 hasta bajar de piso | 30% por piso |
 | Ración de carne | Inmediato | +1 vida máxima y cura 1 | 1 cada 3 pisos |
 | Daga de caza | Equipo | +1 ataque | Garantizado entre pisos 2 y 4 |
@@ -214,12 +214,13 @@ Los enemigos no tienen animación propia todavía (un solo frame, quietos); solo
 
 > **Nota (líneas divisorias del sheet y alfa parcial).** `sheet.png` separa cada tarjeta con una línea fina. Si un recorte queda demasiado pegado al borde de su tarjeta, esa línea sobrevive el recorte como una columna opaca y gris aislada — invisible a simple vista en el PNG pero muy notoria en el juego, ya escalada. Más en general: el recorte por color-distancia contra el fondo de la tarjeta deja muchos píxeles internos (sombras oscuras del propio personaje, cercanas en color al fondo casi negro) con alfa parcial en vez de 0 o 255 — invisible en el PNG a simple vista, pero se nota como un aura semitransparente/lavada cuando esa zona queda sobre un tile claro (reportado por el usuario como "el personaje se ve transparente cerca de una pared"). La corrección que funcionó: binarizar el alfa de todo el sprite (todo <130 → 0, todo ≥130 → 255) en vez de dejar la transición suave del keying original, y recién ahí volver a recortar al contenido real. Antes de dar un sprite por terminado conviene revisar su histograma de alfa (¿hay valores entre 1 y 254?), no solo mirar el PNG de reojo.
 
+**Rehecho de `pino.png`/`arbusto.png`/`tranquera.png`/`rio.png`/`cofre.png` (pedido explícito: "estilo Pokémon Rojo Fuego").** La primera versión (grillas de texto tipeadas a mano, ver `moneda.png`) quedaba demasiado tosca/geométrica para pasar como tileset. La segunda versión genera las formas por código en vez de tipearlas: 2–4 círculos superpuestos (radios y centros a mano) para las copas redondeadas de árbol/arbusto, con luz calculada por posición relativa al centro de cada círculo (`(-dx-dy)/radio` — positivo es arriba-izquierda) para decidir base/luz/sombra, más un contorno de 1 px automático (cualquier pixel del relleno con un vecino de 4 direcciones afuera de la forma). Tranquera y río siguen siendo grilla a mano pero con 3–4 tonos en vez de 2 y ese mismo contorno. Da un resultado mucho más redondeado y prolijo con relativamente poco código; conviene reusar el mismo enfoque (círculos + luz por posición + contorno automático) para cualquier decoración nueva en vez de tipear la grilla directamente.
+
 ### Animación
 
-Dos animaciones separadas, de origen distinto:
+Estilo "Pokémon" (pedido explícito): el cazador solo alterna frame ("camina") mientras se desliza a la casilla siguiente, y queda en un único frame fijo el resto del tiempo — nada de parpadeo constante en reposo. Se sacó el `state.animFrame`/`setInterval` de la versión anterior (parpadeaba todo el tiempo, no solo al moverse).
 
-1. **Respirar / parpadeo de llama (2 frames).** Un `setInterval` de ~250 ms avanza `state.animFrame`; en cada frame de render eso decide si se usa `hero-0.png` o `hero-1.png`. Cosmético, no afecta la lógica del juego.
-2. **Deslizamiento entre casillas.** La lógica sigue siendo instantánea (`step()` devuelve la posición final de una), pero `main.ts` guarda, por cada movimiento real de jugador o enemigo, un `{from, to, start}` y lo interpola con un `requestAnimationFrame` continuo (`ease-out cúbico`, ~130 ms) — así un personaje se desliza a la casilla nueva en vez de teletransportarse. Solo se anima si el piso no cambió (bajar escalera o reiniciar la partida deja de animar y arranca en la posición final directamente, no tendría sentido deslizar entre mazmorras distintas).
+1. **Deslizamiento entre casillas + frame de caminata.** La lógica sigue siendo instantánea (`step()` devuelve la posición final de una), pero `main.ts` guarda, por cada movimiento real de jugador o enemigo, un `{from, to, start}` y lo interpola con un `requestAnimationFrame` continuo (`ease-out cúbico`, ~130 ms) — así un personaje se desliza a la casilla nueva en vez de teletransportarse. Mientras dura ese deslizamiento, `currentHeroMotion` en `main.ts` también calcula qué mitad del trayecto va (`hero-0.png` primera mitad, `hero-1.png` segunda) y se lo pasa a `playEntitySprites` como `heroFrame` — de ahí sale el "paso". Quieto, siempre es `hero-0.png` (o `hero-0-daga.png` si tiene la daga). Solo se anima si el piso no cambió (bajar escalera o reiniciar la partida deja de animar y arranca en la posición final directamente, no tendría sentido deslizar entre mazmorras distintas).
 
 El framebuffer de tiles (paredes/piso/escalera) y el `Lightmap` solo se recalculan cuando cambia el estado lógico (una vez por tecla), no en cada frame de la animación — lo único que corre a 60 fps es el `requestAnimationFrame` reposicionando los sprites de personajes y volviendo a pedirle a Three.js que dibuje.
 

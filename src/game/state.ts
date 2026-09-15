@@ -39,7 +39,6 @@ export interface GameState {
   seen: Set<number>;
   messages: string[];
   mode: Mode;
-  animFrame: number;
   facingLeft: boolean;
   gold: number;
   score: number;
@@ -93,7 +92,6 @@ export function createInitialState(seed: number): GameState {
     seen,
     messages: ["Entrás al bosque oscuro."],
     mode: "play",
-    animFrame: 0,
     facingLeft: false,
     gold: 0,
     score: 0,

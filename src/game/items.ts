@@ -93,6 +93,12 @@ export function useBeltSlot(state: GameState, slot: number): UseBeltResult {
     return { state: logMessage(state, "No tenés nada ahí."), consumedTurn: false };
   }
 
+  if (kind === "pocion" && state.player.hp >= state.player.maxHp) {
+    // No se gasta la poción (ni el turno) si ya tenés la vida al máximo —
+    // antes se perdía sin curar nada.
+    return { state: logMessage(state, "Ya tenés la vida al máximo."), consumedTurn: false };
+  }
+
   const belt = [...state.belt];
   belt[slot] = undefined;
 

@@ -129,13 +129,18 @@ function startGame(): void {
     return { x: anim.fromX + (anim.toX - anim.fromX) * e, y: anim.fromY + (anim.toY - anim.fromY) * e };
   }
 
-  function currentHeroPos(now: number): Point | undefined {
-    if (!heroAnim) return undefined;
-    if (now - heroAnim.start >= MOVE_ANIM_MS) {
+  // Al estilo Pokémon: el cazador solo alterna frame ("camina") mientras
+  // se desliza a la casilla siguiente; quieto, es un único frame fijo —
+  // nada de parpadeo constante en reposo.
+  function currentHeroMotion(now: number): { pos?: Point; walkFrame: number } {
+    if (!heroAnim) return { walkFrame: 0 };
+    const elapsed = now - heroAnim.start;
+    if (elapsed >= MOVE_ANIM_MS) {
       heroAnim = null;
-      return undefined;
+      return { walkFrame: 0 };
     }
-    return interpolate(heroAnim, now);
+    const walkFrame = Math.floor((elapsed / MOVE_ANIM_MS) * 2) % 2;
+    return { pos: interpolate(heroAnim, now), walkFrame };
   }
 
   function currentEnemyPositions(now: number): Map<number, Point> {
@@ -195,10 +200,13 @@ function startGame(): void {
   let rafHandle = 0;
   function frame(now: number): void {
     if (state.mode === "play") {
-      const heroPos = currentHeroPos(now);
+      const { pos: heroPos, walkFrame } = currentHeroMotion(now);
       const enemyPos = currentEnemyPositions(now);
       renderer.syncEntities(
-        [...wallDecorations, ...playEntitySprites(state, { hero: heroPos, enemies: enemyPos })],
+        [
+          ...wallDecorations,
+          ...playEntitySprites(state, { hero: heroPos, heroFrame: walkFrame, enemies: enemyPos }),
+        ],
         light,
       );
       renderer.render(fb, light);
@@ -216,14 +224,9 @@ function startGame(): void {
     rafHandle = requestAnimationFrame(frame);
   }
 
-  const animInterval = setInterval(() => {
-    state = { ...state, animFrame: state.animFrame + 1 };
-  }, 250);
-
   function pause(message: string): void {
     running = false;
     stopListening();
-    clearInterval(animInterval);
     cancelAnimationFrame(rafHandle);
     showOverlay(message);
   }

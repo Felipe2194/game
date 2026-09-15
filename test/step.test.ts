@@ -47,7 +47,6 @@ function makeState(overrides: Partial<GameState> = {}): GameState {
     seen: new Set(),
     messages: [],
     mode: "play",
-    animFrame: 0,
     facingLeft: false,
     gold: 0,
     score: 0,
